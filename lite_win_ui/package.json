@@ -1,7 +1,7 @@
 {
   "name": "edexlite",
-  "version": "0.1.1",
-  "description": "eDEX_UI-inspired dashboard (Windows-friendly, prebuilt PTY)",
+  "version": "0.1.2",
+  "description": "eDEX_UI-inspired dashboard (Windows-friendly, prebuilt PTY via @homebridge)",
   "main": "main.js",
   "author": "You",
   "license": "MIT",
@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "electron-store": "9.0.0",
-    "node-pty-prebuilt-multiarch": "0.11.5",
+    "@homebridge/node-pty-prebuilt-multiarch": "^0.12.0",
     "systeminformation": "5.25.11"
   },
   "devDependencies": {

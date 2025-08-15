@@ -3,10 +3,13 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const os = require('os');
 
-// Prefer prebuilt pty on Windows
+// Prefer the actively maintained prebuilt fork
 let pty;
-try { pty = require('node-pty-prebuilt-multiarch'); }
-catch { pty = require('node-pty'); }
+try { pty = require('@homebridge/node-pty-prebuilt-multiarch'); }
+catch {
+  try { pty = require('node-pty-prebuilt-multiarch'); } // legacy
+  catch { pty = require('node-pty'); }                  // fallback to source build
+}
 
 const si = require('systeminformation');
 
@@ -30,12 +33,12 @@ function createWindow() {
 
 app.whenReady().then(() => {
   createWindow();
-  app.on('activate', function () {
+  app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
 });
 
-app.on('window-all-closed', function () {
+app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
 
@@ -47,47 +50,31 @@ function startShell(cols = 120, rows = 32) {
     cwd: process.cwd(),
     env: process.env
   });
-  shellPty.onData(data => {
-    mainWindow?.webContents.send('term:data', data);
-  });
+  shellPty.onData(data => mainWindow?.webContents.send('term:data', data));
 }
 
-ipcMain.on('term:init', (evt, size) => {
+ipcMain.on('term:init', (_evt, size) => {
   if (!shellPty) startShell(size?.cols || 120, size?.rows || 32);
 });
-
-ipcMain.on('term:resize', (evt, size) => {
-  if (shellPty && size?.cols && size?.rows) {
-    shellPty.resize(size.cols, size.rows);
-  }
+ipcMain.on('term:resize', (_evt, size) => {
+  if (shellPty && size?.cols && size?.rows) shellPty.resize(size.cols, size.rows);
 });
-
-ipcMain.on('term:write', (evt, data) => {
-  shellPty?.write(data);
-});
+ipcMain.on('term:write', (_evt, data) => shellPty?.write(data));
 
 async function pollStats() {
   try {
-    const [cpu, mem, osInfo, net, disk, bat, temp] = await Promise.all([
-      si.currentLoad(),
-      si.mem(),
-      si.osInfo(),
-      si.networkStats(),
-      si.fsSize(),
-      si.battery().catch(() => ({ hasbattery:false })),
-      si.cpuTemperature().catch(() => ({ main: null }))
+    const [cpu, mem, net, disk, bat, temp] = await Promise.all([
+      si.currentLoad(), si.mem(), si.networkStats(), si.fsSize(),
+      si.battery().catch(()=>({hasbattery:false})), si.cpuTemperature().catch(()=>({main:null}))
     ]);
     const payload = {
       time: Date.now(),
-      platform: os.platform(),
-      release: os.release(),
-      hostname: os.hostname(),
+      platform: os.platform(), release: os.release(), hostname: os.hostname(),
       cpu: { avgLoad: cpu.currentLoad, cores: cpu.cpus?.map(c => c.load) || [] },
       mem: { total: mem.total, free: mem.free, used: mem.active },
       net: net.map(n => ({ iface: n.iface, rx: n.rx_bytes, tx: n.tx_bytes, rx_sec: n.rx_sec, tx_sec: n.tx_sec })),
       disks: disk.map(d => ({ fs: d.fs, used: d.used, size: d.size, mount: d.mount })),
-      battery: bat,
-      temperature: temp
+      battery: bat, temperature: temp
     };
     mainWindow?.webContents.send('stats:update', payload);
   } catch {}
