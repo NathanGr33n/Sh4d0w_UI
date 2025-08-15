@@ -1,0 +1,28 @@
+{
+  "name": "edexlite",
+  "version": "0.1.0",
+  "description": "A lightweight, edex_ui-inspired sci\u2011fi terminal dashboard built with Electron + xterm.js",
+  "main": "main.js",
+  "author": "You",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
+  "dependencies": {
+    "electron-store": "9.0.0",
+    "node-pty": "1.0.0",
+    "systeminformation": "5.25.11"
+  },
+  "devDependencies": {
+    "electron": "31.3.1",
+    "electron-builder": "25.0.5"
+  },
+  "build": {
+    "appId": "com.example.edexlite",
+    "directories": {
+      "buildResources": "build"
+    }
+  }
+}
