@@ -1,0 +1,142 @@
+/* Paranoid Ubuntu theme for eDEXlite
+   Inspired by Ubuntu's aubergine/orange palette and eDEX "paranoid" vibes.
+   Drop in as renderer/styles.css (or import as an alternate theme file).
+*/
+
+/* Ubuntu-esque font stack (use with a <link> to Ubuntu font in index.html) */
+:root{
+  --bg-0:#0d0e10;           /* deep charcoal */
+  --bg-1:#14161a;           /* panel base */
+  --bg-2:#1b1e25;           /* panel gradient end */
+  --fg:#f2f4f6;             /* high-contrast foreground */
+  --muted:#b9c2cb;          /* subdued labels */
+  --accent:#E95420;         /* Ubuntu orange */
+  --accent-2:#F06A2C;       /* lighter orange */
+  --aubergine:#2C001E;      /* Ubuntu aubergine shadow */
+  --grid:#232832;           /* subtle grid */
+  --gap:16px;
+}
+
+*{ box-sizing:border-box; }
+html,body{height:100%}
+body{
+  margin:0;
+  color:var(--fg);
+  background:
+    radial-gradient(1600px 800px at 50% -10%, #1f2431 0%, var(--bg-0) 60%, #08090b 100%);
+  font-family: "Ubuntu", Inter, ui-sans-serif, system-ui, Segoe UI, Roboto, Helvetica, Arial;
+  /* subtle scanlines */
+  position:relative;
+  overflow:hidden;
+}
+/* scanline overlay */
+body::before{
+  content:""; pointer-events:none; position:fixed; inset:0;
+  background-image: linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+  background-size: 100% 3px;
+  mix-blend-mode: overlay;
+  opacity: .25;
+}
+
+/* grid layout */
+main.grid{
+  display:grid;
+  grid-template-rows: 64px minmax(300px,1fr) minmax(180px, 220px) 40px;
+  grid-template-columns: 360px 1fr 360px;
+  gap: var(--gap);
+  padding: 16px;
+  height:100vh;
+}
+
+/* top/bottom bars */
+.bar{
+  grid-column:1 / -1;
+  display:flex; align-items:center; justify-content:space-between;
+  background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0));
+  border:1px solid rgba(255,255,255,0.07);
+  padding: 0 16px;
+  border-radius: 14px;
+  box-shadow:
+    0 0 0 1px rgba(0,0,0,0.5) inset,
+    0 10px 20px rgba(0,0,0,0.25) inset,
+    0 0 24px rgba(233,84,32,0.08);
+}
+.bar.small{ font-size:12px; color:var(--muted); }
+
+/* headings */
+h1{ letter-spacing:1.5px; font-weight:700; text-transform:uppercase; font-size:20px;}
+h1 span{ color:var(--accent); font-weight:800; text-shadow:0 0 10px rgba(233,84,32,0.5); }
+
+/* panels */
+.panel{
+  position:relative;
+  background:
+    linear-gradient(180deg, var(--bg-1), var(--bg-2)),
+    linear-gradient(90deg, transparent, rgba(44,0,30,0.25) 60%, transparent);
+  border:1px solid rgba(255,255,255,0.07);
+  border-radius:16px;
+  padding:14px;
+  box-shadow:
+    0 12px 28px rgba(0,0,0,0.35),
+    0 1px 0 rgba(255,255,255,0.04) inset,
+    0 0 0 1px rgba(44,0,30,0.35) inset;
+}
+.panel h2{
+  margin:0 0 8px 0; font-size:14px; letter-spacing:1px;
+  text-transform:uppercase; color:var(--muted);
+}
+
+/* neon edge glow */
+.panel::after, .terminal::after{
+  content:""; position:absolute; inset:-1px; border-radius:16px; pointer-events:none;
+  box-shadow:
+    0 0 20px rgba(233,84,32,0.18),
+    0 0 60px rgba(44,0,30,0.25) inset;
+}
+
+/* terminal block */
+.terminal{
+  grid-row:2 / 4; grid-column:2 / 3;
+  display:flex;
+  background: var(--bg-0);
+  border:1px solid rgba(255,255,255,0.07);
+  border-radius:16px;
+  overflow:hidden;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.35);
+}
+#terminal{ width:100%; height:100%; padding: 10px; }
+
+/* side panels */
+.stats{ grid-row:2 / 3; grid-column:1 / 2; }
+.net  { grid-row:2 / 3; grid-column:3 / 4; }
+.disks{ grid-row:3 / 4; grid-column:1 / 2; }
+
+/* key-value rows */
+.kv{ display:flex; justify-content:space-between; gap:8px; padding:6px 0;
+  border-bottom:1px dashed rgba(255,255,255,0.08); }
+.kv label{ color:var(--muted); }
+
+/* disks bar */
+.disk{ padding:6px 0; }
+.disk .row{ display:flex; justify-content:space-between; font-size:13px; color:var(--fg); }
+.disk .bar{ height:8px; background:#0e1116; border-radius:999px; border:1px solid rgba(255,255,255,0.08); overflow:hidden; margin-top:6px; }
+.disk .bar i{
+  display:block; height:100%;
+  background: linear-gradient(90deg, var(--aubergine), var(--accent));
+}
+
+/* subtle grid background on main */
+main.grid::before{
+  content:""; position:fixed; inset:0; pointer-events:none; opacity:.14;
+  background-image:
+    linear-gradient(to right, var(--grid) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid) 1px, transparent 1px);
+  background-size: 24px 24px, 24px 24px;
+  mask-image: radial-gradient(1000px 600px at 50% 0%, black 60%, transparent 100%);
+}
+
+/* xterm colors (Ubuntu orange cursor, aubergine selection) */
+.xterm .xterm-viewport{ background: transparent; }
+.xterm .xterm-rows{ text-shadow: 0 0 1px rgba(0,0,0,0.6); }
+.xterm .xterm-cursor-block{ background: var(--accent) !important; }
+.xterm .xterm-selection div{ background: rgba(44,0,30,0.45) !important; }

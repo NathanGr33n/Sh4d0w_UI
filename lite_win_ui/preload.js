@@ -1,3 +1,7 @@
+//preload.js
+//By: NathanGr33n
+//August 2025
+
 const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('edex', {
   sendTermInit: (size) => ipcRenderer.send('term:init', size),

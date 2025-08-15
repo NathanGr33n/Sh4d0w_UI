@@ -1,4 +1,7 @@
 // main.js
+// By: NathanGr33n
+// August 2025
+
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const os = require('os');

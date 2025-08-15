@@ -1,7 +1,7 @@
 {
-  "name": "edexlite",
-  "version": "0.1.2",
-  "description": "eDEX_UI-inspired dashboard (Windows-friendly, prebuilt PTY via @homebridge)",
+  "name": "ShadowUI",
+  "version": "0.1.3",
+  "description": "Shadow UI — a grayscale, eDEX-inspired Electron dashboard",
   "main": "main.js",
   "author": "You",
   "license": "MIT",
@@ -11,8 +11,8 @@
     "dist": "electron-builder"
   },
   "dependencies": {
-    "electron-store": "9.0.0",
     "@homebridge/node-pty-prebuilt-multiarch": "^0.12.0",
+    "electron-store": "9.0.0",
     "systeminformation": "5.25.11"
   },
   "devDependencies": {
@@ -20,7 +20,8 @@
     "electron-builder": "25.0.5"
   },
   "build": {
-    "appId": "com.example.edexlite",
+    "appId": "com.example.shadowui",
+    "productName": "Shadow UI",
     "directories": {
       "buildResources": "build"
     }
