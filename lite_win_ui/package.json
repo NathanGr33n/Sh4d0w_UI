@@ -1,7 +1,7 @@
 {
   "name": "edexlite",
-  "version": "0.1.0",
-  "description": "A lightweight, edex_ui-inspired sci\u2011fi terminal dashboard built with Electron + xterm.js",
+  "version": "0.1.1",
+  "description": "eDEX_UI-inspired dashboard (Windows-friendly, prebuilt PTY)",
   "main": "main.js",
   "author": "You",
   "license": "MIT",
@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "electron-store": "9.0.0",
-    "node-pty": "1.0.0",
+    "node-pty-prebuilt-multiarch": "0.11.5",
     "systeminformation": "5.25.11"
   },
   "devDependencies": {
