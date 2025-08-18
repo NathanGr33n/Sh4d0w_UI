@@ -4,7 +4,7 @@
   "description": "Shadow UI — a grayscale, eDEX-inspired Electron dashboard",
   "main": "main.js",
   "author": "You",
-  "license": "MIT",
+  "license": "GPL-3.0",
   "scripts": {
     "start": "electron .",
     "pack": "electron-builder --dir",
