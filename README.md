@@ -150,15 +150,14 @@ This project is licensed under the GNU General Public License v3.0 - see the [LI
 
 ## 📷 Screenshots
 
-<!-- Put .png files in docs/screenshots and reference them here -->
+### Shadow UI Dashboard
+![Shadow UI Interface](docs/screenshots/UI_Screenshot.PNG)
+*Complete Shadow UI interface showing terminal integration and real-time system monitoring*
 
-<!-- ![Terminal view](docs/screenshots/terminal.png) -->
-<!-- ![System monitoring](docs/screenshots/monitoring.png) -->
-
-**To add screenshots:**
-1. Create a `docs/screenshots` directory
-2. Add your screenshots (.png preferred)
-3. Uncomment and update the image references above
+**Additional screenshots:**
+- More screenshots coming soon to showcase specific features
+- Alternative theme demonstrations
+- Detailed monitoring views
 
 ## 📚 Version History
 
