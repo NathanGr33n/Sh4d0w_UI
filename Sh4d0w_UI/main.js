@@ -6,20 +6,29 @@ const { app, BrowserWindow, ipcMain, session } = require('electron');
 const path = require('path');
 const os = require('os');
 const config = require('./config');
+const Logger = require('./logger');
+const ErrorHandler = require('./errorHandler');
 
-// Enhanced logging utility with configuration
+// Initialize advanced logging system
+const securityConfig = config.getSecurityConfig();
+const logger = new Logger({
+  logLevel: securityConfig.logLevel,
+  enableConsole: true,
+  enableFile: securityConfig.enableLogging
+});
+
+// Initialize error handler
+const errorHandler = new ErrorHandler(logger);
+
+// Convenience logging functions
 const log = {
-  info: (msg, ...args) => {
-    if (config.getSecurityConfig().logLevel !== 'error') {
-      console.log(`[INFO] ${new Date().toISOString()}: ${msg}`, ...args);
-    }
-  },
-  warn: (msg, ...args) => {
-    if (config.getSecurityConfig().logLevel === 'info' || config.getSecurityConfig().logLevel === 'warn') {
-      console.warn(`[WARN] ${new Date().toISOString()}: ${msg}`, ...args);
-    }
-  },
-  error: (msg, ...args) => console.error(`[ERROR] ${new Date().toISOString()}: ${msg}`, ...args)
+  info: (msg, meta) => logger.info(msg, meta),
+  warn: (msg, meta) => logger.warn(msg, meta),
+  error: (msg, meta) => logger.error(msg, meta),
+  debug: (msg, meta) => logger.debug(msg, meta),
+  time: (label) => logger.time(label),
+  timeEnd: (label) => logger.timeEnd(label),
+  health: () => logger.logSystemHealth()
 };
 
 // Prefer the actively maintained prebuilt fork
@@ -151,27 +160,43 @@ function sanitizeTerminalData(data) {
   return data.slice(0, 10000); // Limit length to prevent memory issues
 }
 
-// Resource cleanup
+// Resource cleanup with enhanced error handling
 function cleanup() {
   if (isShuttingDown) return;
   isShuttingDown = true;
   
+  log.time('cleanup');
   log.info('Starting cleanup...');
   
+  // Stop health monitoring
+  if (errorHandler) {
+    errorHandler.cleanup();
+  }
+  
+  // Clear stats interval
   if (statsInterval) {
     clearTimeout(statsInterval);
     statsInterval = null;
   }
   
+  // Kill shell process
   if (shellPty) {
     try {
       shellPty.kill();
       shellPty = null;
       log.info('Terminal process cleaned up');
     } catch (err) {
-      log.error('Error cleaning up terminal:', err);
+      errorHandler.handleError(err, 'cleanup-shell');
     }
   }
+  
+  // Close logger
+  if (logger) {
+    logger.close();
+  }
+  
+  log.timeEnd('cleanup');
+  log.info('Cleanup completed');
 }
 
 function startShell(cols = 120, rows = 32) {
@@ -246,7 +271,53 @@ ipcMain.on('term:write', (_evt, data) => {
       shellPty.write(sanitizedData);
     }
   } catch (error) {
-    log.error('Error writing to terminal:', error);
+    errorHandler.handleError(error, 'term:write');
+  }
+});
+
+// Renderer error reporting
+ipcMain.on('renderer:error', (_evt, errorData) => {
+  errorHandler.handleError(new Error(errorData.message), 'renderer', {
+    ...errorData,
+    source: 'renderer-process'
+  });
+});
+
+// Debug info handler
+ipcMain.handle('debug:get-info', async () => {
+  return {
+    metrics: errorHandler.getMetrics(),
+    systemHealth: {
+      uptime: process.uptime(),
+      memory: process.memoryUsage(),
+      platform: os.platform(),
+      arch: os.arch(),
+      nodeVersion: process.version
+    },
+    recentLogs: logger.getRecentLogs(20)
+  };
+});
+
+// Debug command handler
+ipcMain.on('debug:command', (_evt, command) => {
+  try {
+    switch (command.type) {
+      case 'health-check':
+        logger.logSystemHealth();
+        break;
+      case 'clear-errors':
+        errorHandler.errorCount = 0;
+        errorHandler.performanceMetrics.errors = [];
+        log.info('Error count reset by debug command');
+        break;
+      case 'memory-info':
+        log.info('Memory check requested', process.memoryUsage());
+        break;
+      default:
+        log.warn('Unknown debug command:', command);
+    }
+  } catch (error) {
+    errorHandler.handleError(error, 'debug:command');
   }
 });
 
@@ -355,13 +426,5 @@ app.on('before-quit', () => {
   cleanup();
 });
 
-// Handle uncaught exceptions
-process.on('uncaughtException', (error) => {
-  log.error('Uncaught exception:', error);
-  cleanup();
-  process.exit(1);
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  log.error('Unhandled rejection at:', promise, 'reason:', reason);
-});
+// Remove existing error handlers since ErrorHandler class handles them
+// The ErrorHandler constructor already sets up these handlers
