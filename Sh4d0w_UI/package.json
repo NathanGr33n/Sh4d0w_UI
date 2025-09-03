@@ -1,6 +1,6 @@
 {
   "name": "ShadowUI",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "description": "Shadow UI — a grayscale, eDEX-inspired Electron dashboard",
   "main": "main.js",
   "author": "You",
