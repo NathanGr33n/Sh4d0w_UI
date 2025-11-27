@@ -12,11 +12,11 @@
   },
   "dependencies": {
     "@homebridge/node-pty-prebuilt-multiarch": "^0.12.0",
-    "electron-store": "9.0.0",
+    "electron-store": "^8.2.0",
     "systeminformation": "5.25.11"
   },
   "devDependencies": {
-    "electron": "31.3.1",
+    "electron": "^38.1.2",
     "electron-builder": "25.0.5"
   },
   "build": {
