@@ -208,13 +208,13 @@ function cleanup() {
     }
   }
 
-  // Close logger
+  log.timeEnd('cleanup');
+  log.info('Cleanup completed');
+
+  // Close logger LAST to ensure all logs are written
   if (logger) {
     logger.close();
   }
-
-  log.timeEnd('cleanup');
-  log.info('Cleanup completed');
 }
 
 function startShell(cols = 120, rows = 32) {
@@ -227,12 +227,35 @@ function startShell(cols = 120, rows = 32) {
     const shell = process.platform === 'win32' ? 'powershell.exe' : process.env.SHELL || 'bash';
     log.info(`Starting shell: ${shell} (${cols}x${rows})`);
 
+    // Security: Whitelist only safe environment variables
+    // Do NOT pass sensitive vars like AWS_*, GITHUB_TOKEN, NPM_TOKEN, etc.
+    const safeEnv = {
+      TERM_PROGRAM: 'ShadowUI',
+      HOME: process.env.HOME || process.env.USERPROFILE || '',
+      USER: process.env.USER || process.env.USERNAME || '',
+      SHELL: process.env.SHELL || '',
+      PATH: process.env.PATH || '',
+      LANG: process.env.LANG || process.env.LANGUAGE || 'en_US.UTF-8',
+      TERM: process.env.TERM || 'xterm-color',
+      COLORTERM: process.env.COLORTERM || '',
+      // Windows-specific
+      SYSTEMROOT: process.env.SYSTEMROOT || '',
+      WINDIR: process.env.WINDIR || '',
+      LOCALAPPDATA: process.env.LOCALAPPDATA || '',
+      APPDATA: process.env.APPDATA || '',
+      TEMP: process.env.TEMP || process.env.TMP || '',
+      TMP: process.env.TMP || process.env.TEMP || '',
+      // Unix-specific
+      LOGNAME: process.env.LOGNAME || '',
+      PWD: process.cwd(),
+    };
+
     shellPty = pty.spawn(shell, [], {
       name: 'xterm-color',
       cols: Math.max(1, Math.min(500, cols)),
       rows: Math.max(1, Math.min(200, rows)),
       cwd: process.cwd(),
-      env: { ...process.env, TERM_PROGRAM: 'ShadowUI' },
+      env: safeEnv,
     });
 
     shellPty.onData((data) => {
@@ -394,13 +417,15 @@ async function pollStats() {
     if (statsRetryCount >= MAX_RETRIES) {
       log.error(`Stats polling failed ${MAX_RETRIES} times, backing off`);
       statsRetryCount = 0;
-      // Increase interval temporarily
-      setTimeout(() => pollStats(), STATS_INTERVAL * 5);
+      // Increase interval temporarily and return to prevent double scheduling
+      if (!isShuttingDown) {
+        statsInterval = setTimeout(pollStats, STATS_INTERVAL * 5);
+      }
       return;
     }
   }
 
-  // Schedule next poll
+  // Schedule next poll (only reached if no backoff)
   if (!isShuttingDown) {
     statsInterval = setTimeout(pollStats, STATS_INTERVAL);
   }
