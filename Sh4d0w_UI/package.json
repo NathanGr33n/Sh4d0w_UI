@@ -11,7 +11,10 @@
     "build": "tsc",
     "pack": "npm run build && electron-builder --dir",
     "dist": "npm run build && electron-builder",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
   "dependencies": {
     "@homebridge/node-pty-prebuilt-multiarch": "^0.12.0",
@@ -20,9 +23,13 @@
   },
   "devDependencies": {
     "@types/electron": "^1.4.38",
+    "@types/jest": "^30.0.0",
     "@types/node": "^24.10.1",
     "electron": "^38.1.2",
     "electron-builder": "25.0.5",
+    "electron-mock-ipc": "^0.3.12",
+    "jest": "^30.2.0",
+    "ts-jest": "^29.4.5",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
   },
