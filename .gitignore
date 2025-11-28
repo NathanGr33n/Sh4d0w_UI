@@ -27,6 +27,10 @@ pnpm-debug.log*
 tmp/
 temp/
 
+# Test coverage
+coverage/
+*.lcov
+
 # Electron-builder output
 *.asar
 release/

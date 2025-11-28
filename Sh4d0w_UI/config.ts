@@ -63,7 +63,7 @@ const schema = {
       defaultCols: { type: 'number', minimum: 40, maximum: 500, default: 120 },
       defaultRows: { type: 'number', minimum: 20, maximum: 200, default: 32 },
       fontSize: { type: 'number', minimum: 8, maximum: 24, default: 14 },
-      shell: { type: 'string', default: null }
+      shell: { type: ['string', 'null'], default: null }
     }
   },
   monitoring: {
@@ -87,7 +87,7 @@ const schema = {
     type: 'object',
     properties: {
       current: { type: 'string', default: 'shadow' },
-      customCssPath: { type: 'string', default: null }
+      customCssPath: { type: ['string', 'null'], default: null }
     }
   }
 };

@@ -28,7 +28,7 @@
     "noUnusedParameters": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
-    "types": ["node", "electron"]
+    "types": ["node", "electron", "jest"]
   },
   "include": [
     "*.ts",
