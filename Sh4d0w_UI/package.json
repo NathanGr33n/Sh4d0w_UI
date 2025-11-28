@@ -6,9 +6,12 @@
   "author": "You",
   "license": "GPL-3.0",
   "scripts": {
-    "start": "electron .",
-    "pack": "electron-builder --dir",
-    "dist": "electron-builder"
+    "start": "npm run build && electron .",
+    "dev": "tsc --watch",
+    "build": "tsc",
+    "pack": "npm run build && electron-builder --dir",
+    "dist": "npm run build && electron-builder",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@homebridge/node-pty-prebuilt-multiarch": "^0.12.0",
@@ -16,8 +19,12 @@
     "systeminformation": "5.25.11"
   },
   "devDependencies": {
+    "@types/electron": "^1.4.38",
+    "@types/node": "^24.10.1",
     "electron": "^38.1.2",
-    "electron-builder": "25.0.5"
+    "electron-builder": "25.0.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
   },
   "build": {
     "appId": "com.example.shadowui",
