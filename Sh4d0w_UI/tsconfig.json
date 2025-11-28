@@ -32,7 +32,8 @@
   },
   "include": [
     "*.ts",
-    "*.js"
+    "*.js",
+    "__tests__/**/*.ts"
   ],
   "exclude": [
     "node_modules",

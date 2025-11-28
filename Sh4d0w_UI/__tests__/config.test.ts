@@ -7,12 +7,12 @@ describe('Config Module', () => {
   describe('Configuration Types', () => {
     it('should return valid window configuration', () => {
       const windowConfig = config.getWindowConfig();
-      
+
       expect(windowConfig).toBeDefined();
       expect(typeof windowConfig.width).toBe('number');
       expect(typeof windowConfig.height).toBe('number');
       expect(typeof windowConfig.backgroundColor).toBe('string');
-      
+
       // Validate ranges
       expect(windowConfig.width).toBeGreaterThanOrEqual(800);
       expect(windowConfig.width).toBeLessThanOrEqual(4000);
@@ -22,12 +22,12 @@ describe('Config Module', () => {
 
     it('should return valid terminal configuration', () => {
       const terminalConfig = config.getTerminalConfig();
-      
+
       expect(terminalConfig).toBeDefined();
       expect(typeof terminalConfig.defaultCols).toBe('number');
       expect(typeof terminalConfig.defaultRows).toBe('number');
       expect(typeof terminalConfig.fontSize).toBe('number');
-      
+
       // Validate ranges
       expect(terminalConfig.defaultCols).toBeGreaterThanOrEqual(40);
       expect(terminalConfig.defaultCols).toBeLessThanOrEqual(500);
@@ -39,13 +39,13 @@ describe('Config Module', () => {
 
     it('should return valid monitoring configuration', () => {
       const monitoringConfig = config.getMonitoringConfig();
-      
+
       expect(monitoringConfig).toBeDefined();
       expect(typeof monitoringConfig.pollInterval).toBe('number');
       expect(typeof monitoringConfig.maxRetries).toBe('number');
       expect(typeof monitoringConfig.enableBatteryMonitoring).toBe('boolean');
       expect(typeof monitoringConfig.enableTemperatureMonitoring).toBe('boolean');
-      
+
       // Validate ranges
       expect(monitoringConfig.pollInterval).toBeGreaterThanOrEqual(500);
       expect(monitoringConfig.pollInterval).toBeLessThanOrEqual(10000);
@@ -55,7 +55,7 @@ describe('Config Module', () => {
 
     it('should return valid security configuration', () => {
       const securityConfig = config.getSecurityConfig();
-      
+
       expect(securityConfig).toBeDefined();
       expect(typeof securityConfig.allowExternalRequests).toBe('boolean');
       expect(typeof securityConfig.enableLogging).toBe('boolean');
@@ -64,10 +64,12 @@ describe('Config Module', () => {
 
     it('should return valid theme configuration', () => {
       const themeConfig = config.getThemeConfig();
-      
+
       expect(themeConfig).toBeDefined();
       expect(typeof themeConfig.current).toBe('string');
-      expect(themeConfig.customCssPath === null || typeof themeConfig.customCssPath === 'string').toBe(true);
+      expect(
+        themeConfig.customCssPath === null || typeof themeConfig.customCssPath === 'string'
+      ).toBe(true);
     });
   });
 
@@ -128,7 +130,7 @@ describe('Config Module', () => {
     it('should enforce strict bounds on poll interval to prevent DoS', () => {
       const tooFast = config.validateAndSanitize('monitoring.pollInterval', 100);
       expect(tooFast).toBe(false);
-      
+
       const tooSlow = config.validateAndSanitize('monitoring.pollInterval', 20000);
       expect(tooSlow).toBe(false);
     });
@@ -136,13 +138,16 @@ describe('Config Module', () => {
     it('should limit terminal size to prevent resource exhaustion', () => {
       const tooBig = config.validateAndSanitize('terminal.defaultCols', 1000);
       expect(tooBig).toBe(false);
-      
+
       const tooManyRows = config.validateAndSanitize('terminal.defaultRows', 500);
       expect(tooManyRows).toBe(false);
     });
 
     it('should validate log level enum to prevent injection', () => {
-      const malicious = config.validateAndSanitize('security.logLevel', '<script>alert("xss")</script>');
+      const malicious = config.validateAndSanitize(
+        'security.logLevel',
+        '<script>alert("xss")</script>'
+      );
       expect(malicious).toBe(false);
     });
   });

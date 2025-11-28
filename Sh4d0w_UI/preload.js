@@ -35,5 +35,5 @@ contextBridge.exposeInMainWorld('edex', {
   onStats: (cb) => safeIpcOn('stats:update', cb),
   sendError: (errorData) => safeIpcSend('renderer:error', errorData),
   getDebugInfo: () => ipcRenderer.invoke('debug:get-info'),
-  sendDebugCommand: (command) => safeIpcSend('debug:command', command)
+  sendDebugCommand: (command) => safeIpcSend('debug:command', command),
 });
