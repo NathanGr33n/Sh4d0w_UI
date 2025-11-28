@@ -15,11 +15,11 @@ class ErrorHandler {
       startTime: Date.now(),
       errors: [],
       warnings: [],
-      performance: []
+      performance: [],
     };
     this.healthCheckInterval = null;
     this.crashReportDir = path.join(os.homedir(), '.shadow-ui', 'crashes');
-    
+
     this.ensureCrashReportDirectory();
     this.setupGlobalErrorHandlers();
     this.startHealthMonitoring();
@@ -43,7 +43,9 @@ class ErrorHandler {
 
     // Handle unhandled promise rejections
     process.on('unhandledRejection', (reason, promise) => {
-      this.handleCriticalError('Unhandled Promise Rejection', reason, { promise: promise.toString() });
+      this.handleCriticalError('Unhandled Promise Rejection', reason, {
+        promise: promise.toString(),
+      });
     });
 
     // Handle warnings
@@ -67,7 +69,7 @@ class ErrorHandler {
 
   handleCriticalError(type, error, metadata = {}) {
     this.crashCount++;
-    
+
     const errorData = {
       type,
       message: error.message || error.toString(),
@@ -75,12 +77,12 @@ class ErrorHandler {
       timestamp: new Date().toISOString(),
       metadata,
       system: this.getSystemInfo(),
-      performance: this.getPerformanceSnapshot()
+      performance: this.getPerformanceSnapshot(),
     };
 
     this.logger.error(`Critical Error: ${type}`, errorData);
     this.generateCrashReport(errorData);
-    
+
     // If too many crashes, exit
     if (this.crashCount >= 5) {
       this.logger.error('Too many crashes detected, exiting application');
@@ -91,25 +93,25 @@ class ErrorHandler {
 
   handleError(error, context = '', metadata = {}) {
     this.errorCount++;
-    
+
     const errorData = {
       message: error.message || error.toString(),
       stack: error.stack,
       context,
       timestamp: new Date().toISOString(),
       metadata,
-      count: this.errorCount
+      count: this.errorCount,
     };
 
     this.performanceMetrics.errors.push(errorData);
-    
+
     // Keep only last 100 errors in memory
     if (this.performanceMetrics.errors.length > 100) {
       this.performanceMetrics.errors = this.performanceMetrics.errors.slice(-100);
     }
 
     this.logger.error(`Application Error [${context}]`, errorData);
-    
+
     return errorData;
   }
 
@@ -119,18 +121,18 @@ class ErrorHandler {
       message: warning.message,
       stack: warning.stack,
       timestamp: new Date().toISOString(),
-      metadata
+      metadata,
     };
 
     this.performanceMetrics.warnings.push(warningData);
-    
+
     // Keep only last 50 warnings in memory
     if (this.performanceMetrics.warnings.length > 50) {
       this.performanceMetrics.warnings = this.performanceMetrics.warnings.slice(-50);
     }
 
     this.logger.warn('Application Warning', warningData);
-    
+
     return warningData;
   }
 
@@ -184,20 +186,22 @@ class ErrorHandler {
       label,
       duration,
       timestamp: new Date().toISOString(),
-      metadata
+      metadata,
     };
 
     this.performanceMetrics.performance.push(perfData);
-    
+
     // Keep only last 200 performance entries
     if (this.performanceMetrics.performance.length > 200) {
       this.performanceMetrics.performance = this.performanceMetrics.performance.slice(-200);
     }
 
     // Log slow operations
-    if (duration > 1000) { // More than 1 second
+    if (duration > 1000) {
+      // More than 1 second
       this.logger.warn('Slow operation detected', perfData);
-    } else if (duration > 100) { // More than 100ms
+    } else if (duration > 100) {
+      // More than 100ms
       this.logger.debug('Performance timing', perfData);
     }
 
@@ -210,24 +214,25 @@ class ErrorHandler {
     const totalMem = os.totalmem();
     const freeMem = os.freemem();
     const usedMem = totalMem - freeMem;
-    
+
     const memoryData = {
       process: {
         rss: memUsage.rss,
         heapUsed: memUsage.heapUsed,
         heapTotal: memUsage.heapTotal,
-        external: memUsage.external
+        external: memUsage.external,
       },
       system: {
         total: totalMem,
         free: freeMem,
         used: usedMem,
-        percentUsed: (usedMem / totalMem) * 100
-      }
+        percentUsed: (usedMem / totalMem) * 100,
+      },
     };
 
     // Log memory warnings
-    if (memoryData.process.heapUsed > 100 * 1024 * 1024) { // 100MB
+    if (memoryData.process.heapUsed > 100 * 1024 * 1024) {
+      // 100MB
       this.logger.warn('High memory usage detected', memoryData);
     }
 
@@ -251,7 +256,7 @@ class ErrorHandler {
       memory: this.checkMemoryUsage(),
       errors: this.errorCount,
       crashes: this.crashCount,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     this.logger.debug('Health check', health);
@@ -274,7 +279,7 @@ class ErrorHandler {
       pid: process.pid,
       uptime: process.uptime(),
       cwd: process.cwd(),
-      execPath: process.execPath
+      execPath: process.execPath,
     };
   }
 
@@ -284,7 +289,7 @@ class ErrorHandler {
       warnings: this.performanceMetrics.warnings.length,
       performanceEntries: this.performanceMetrics.performance.length,
       uptime: Date.now() - this.performanceMetrics.startTime,
-      memory: process.memoryUsage()
+      memory: process.memoryUsage(),
     };
   }
 
@@ -292,12 +297,12 @@ class ErrorHandler {
     try {
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       const crashFile = path.join(this.crashReportDir, `crash-${timestamp}.json`);
-      
+
       const crashReport = {
         ...errorData,
         recentErrors: this.performanceMetrics.errors.slice(-10),
         recentWarnings: this.performanceMetrics.warnings.slice(-5),
-        recentPerformance: this.performanceMetrics.performance.slice(-20)
+        recentPerformance: this.performanceMetrics.performance.slice(-20),
       };
 
       fs.writeFileSync(crashFile, JSON.stringify(crashReport, null, 2));
@@ -315,7 +320,7 @@ class ErrorHandler {
       uptime: Date.now() - this.performanceMetrics.startTime,
       recentErrors: this.performanceMetrics.errors.slice(-10),
       recentWarnings: this.performanceMetrics.warnings.slice(-5),
-      recentPerformance: this.performanceMetrics.performance.slice(-10)
+      recentPerformance: this.performanceMetrics.performance.slice(-10),
     };
   }
 
@@ -324,7 +329,7 @@ class ErrorHandler {
       clearInterval(this.healthCheckInterval);
       this.healthCheckInterval = null;
     }
-    
+
     this.logger.info('Error handler cleanup completed');
   }
 }

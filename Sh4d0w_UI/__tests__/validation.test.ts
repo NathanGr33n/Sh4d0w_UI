@@ -4,9 +4,15 @@
 describe('Validation Helpers', () => {
   // Test validateSize function (from main.js)
   function validateSize(size: any): boolean {
-    return !!(size && 
-           typeof size.cols === 'number' && size.cols > 0 && size.cols <= 500 &&
-           typeof size.rows === 'number' && size.rows > 0 && size.rows <= 200);
+    return !!(
+      size &&
+      typeof size.cols === 'number' &&
+      size.cols > 0 &&
+      size.cols <= 500 &&
+      typeof size.rows === 'number' &&
+      size.rows > 0 &&
+      size.rows <= 200
+    );
   }
 
   describe('validateSize', () => {
@@ -60,7 +66,9 @@ describe('Validation Helpers', () => {
 
   // Test sanitizeTerminalData function (from main.js)
   function sanitizeTerminalData(data: any): string {
-    if (typeof data !== 'string') return '';
+    if (typeof data !== 'string') {
+      return '';
+    }
     return data.slice(0, 10000); // Limit length to prevent memory issues
   }
 

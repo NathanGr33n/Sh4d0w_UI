@@ -6,9 +6,9 @@ const { app, BrowserWindow, ipcMain, session } = require('electron');
 const path = require('path');
 const os = require('os');
 // Use compiled TypeScript config if available, fallback to JS
-const config = require(require('fs').existsSync(path.join(__dirname, 'dist', 'config.js')) 
-  ? './dist/config' 
-  : './config');
+const config = require(
+  require('fs').existsSync(path.join(__dirname, 'dist', 'config.js')) ? './dist/config' : './config'
+);
 const Logger = require('./logger');
 const ErrorHandler = require('./errorHandler');
 
@@ -17,7 +17,7 @@ const securityConfig = config.getSecurityConfig();
 const logger = new Logger({
   logLevel: securityConfig.logLevel,
   enableConsole: true,
-  enableFile: securityConfig.enableLogging
+  enableFile: securityConfig.enableLogging,
 });
 
 // Initialize error handler
@@ -31,15 +31,20 @@ const log = {
   debug: (msg, meta) => logger.debug(msg, meta),
   time: (label) => logger.time(label),
   timeEnd: (label) => logger.timeEnd(label),
-  health: () => logger.logSystemHealth()
+  health: () => logger.logSystemHealth(),
 };
 
 // Prefer the actively maintained prebuilt fork
 let pty;
-try { pty = require('@homebridge/node-pty-prebuilt-multiarch'); }
-catch {
-  try { pty = require('node-pty-prebuilt-multiarch'); } // legacy
-  catch { pty = require('node-pty'); }                  // fallback to source build
+try {
+  pty = require('@homebridge/node-pty-prebuilt-multiarch');
+} catch {
+  try {
+    pty = require('node-pty-prebuilt-multiarch');
+  } catch {
+    // legacy
+    pty = require('node-pty');
+  } // fallback to source build
 }
 
 const si = require('systeminformation');
@@ -58,7 +63,7 @@ let statsRetryCount = 0;
 // Security: Set up Content Security Policy
 function setupSecurity() {
   const defaultSession = session.defaultSession;
-  
+
   // CSP Header
   defaultSession.webRequest.onHeadersReceived((details, callback) => {
     callback({
@@ -73,19 +78,21 @@ function setupSecurity() {
           "img-src 'self' data:;",
           "media-src 'none';",
           "object-src 'none';",
-          "frame-src 'none';".replace(/;\s*/g, '; ')
-        ]
-      }
+          "frame-src 'none';".replace(/;\s*/g, '; '),
+        ],
+      },
     });
   });
 
   // Block external navigation
   defaultSession.webRequest.onBeforeRequest((details, callback) => {
     const url = new URL(details.url);
-    if (url.protocol === 'file:' || 
-        url.hostname === 'cdn.jsdelivr.net' || 
-        url.hostname === 'fonts.googleapis.com' ||
-        url.hostname === 'fonts.gstatic.com') {
+    if (
+      url.protocol === 'file:' ||
+      url.hostname === 'cdn.jsdelivr.net' ||
+      url.hostname === 'fonts.googleapis.com' ||
+      url.hostname === 'fonts.gstatic.com'
+    ) {
       callback({});
     } else {
       log.warn('Blocked external request:', details.url);
@@ -109,10 +116,10 @@ function createWindow() {
         allowRunningInsecureContent: false,
         experimentalFeatures: false,
         webSecurity: true,
-        sandbox: false // Keep false for now due to node-pty requirements
+        sandbox: false, // Keep false for now due to node-pty requirements
       },
       autoHideMenuBar: true,
-      show: false // Don't show until ready
+      show: false, // Don't show until ready
     });
 
     // Security: Prevent new window creation
@@ -139,11 +146,9 @@ function createWindow() {
       cleanup();
     });
 
-    mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'))
-      .catch(err => {
-        log.error('Failed to load main window:', err);
-      });
-
+    mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html')).catch((err) => {
+      log.error('Failed to load main window:', err);
+    });
   } catch (error) {
     log.error('Failed to create window:', error);
     app.quit();
@@ -152,36 +157,46 @@ function createWindow() {
 
 // Input validation helpers
 function validateSize(size) {
-  return size && 
-         typeof size.cols === 'number' && size.cols > 0 && size.cols <= 500 &&
-         typeof size.rows === 'number' && size.rows > 0 && size.rows <= 200;
+  return (
+    size &&
+    typeof size.cols === 'number' &&
+    size.cols > 0 &&
+    size.cols <= 500 &&
+    typeof size.rows === 'number' &&
+    size.rows > 0 &&
+    size.rows <= 200
+  );
 }
 
 function sanitizeTerminalData(data) {
-  if (typeof data !== 'string') return '';
+  if (typeof data !== 'string') {
+    return '';
+  }
   // Basic sanitization - remove potential control sequences that could be harmful
   return data.slice(0, 10000); // Limit length to prevent memory issues
 }
 
 // Resource cleanup with enhanced error handling
 function cleanup() {
-  if (isShuttingDown) return;
+  if (isShuttingDown) {
+    return;
+  }
   isShuttingDown = true;
-  
+
   log.time('cleanup');
   log.info('Starting cleanup...');
-  
+
   // Stop health monitoring
   if (errorHandler) {
     errorHandler.cleanup();
   }
-  
+
   // Clear stats interval
   if (statsInterval) {
     clearTimeout(statsInterval);
     statsInterval = null;
   }
-  
+
   // Kill shell process
   if (shellPty) {
     try {
@@ -192,12 +207,12 @@ function cleanup() {
       errorHandler.handleError(err, 'cleanup-shell');
     }
   }
-  
+
   // Close logger
   if (logger) {
     logger.close();
   }
-  
+
   log.timeEnd('cleanup');
   log.info('Cleanup completed');
 }
@@ -209,18 +224,18 @@ function startShell(cols = 120, rows = 32) {
       return;
     }
 
-    const shell = process.platform === 'win32' ? 'powershell.exe' : (process.env.SHELL || 'bash');
+    const shell = process.platform === 'win32' ? 'powershell.exe' : process.env.SHELL || 'bash';
     log.info(`Starting shell: ${shell} (${cols}x${rows})`);
-    
+
     shellPty = pty.spawn(shell, [], {
       name: 'xterm-color',
       cols: Math.max(1, Math.min(500, cols)),
       rows: Math.max(1, Math.min(200, rows)),
       cwd: process.cwd(),
-      env: { ...process.env, TERM_PROGRAM: 'ShadowUI' }
+      env: { ...process.env, TERM_PROGRAM: 'ShadowUI' },
     });
-    
-    shellPty.onData(data => {
+
+    shellPty.onData((data) => {
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('term:data', data);
       }
@@ -230,7 +245,6 @@ function startShell(cols = 120, rows = 32) {
       log.info(`Shell exited with code ${code}, signal ${signal}`);
       shellPty = null;
     });
-
   } catch (error) {
     log.error('Failed to start shell:', error);
     shellPty = null;
@@ -282,7 +296,7 @@ ipcMain.on('term:write', (_evt, data) => {
 ipcMain.on('renderer:error', (_evt, errorData) => {
   errorHandler.handleError(new Error(errorData.message), 'renderer', {
     ...errorData,
-    source: 'renderer-process'
+    source: 'renderer-process',
   });
 });
 
@@ -295,9 +309,9 @@ ipcMain.handle('debug:get-info', async () => {
       memory: process.memoryUsage(),
       platform: os.platform(),
       arch: os.arch(),
-      nodeVersion: process.version
+      nodeVersion: process.version,
     },
-    recentLogs: logger.getRecentLogs(20)
+    recentLogs: logger.getRecentLogs(20),
   };
 });
 
@@ -337,7 +351,7 @@ async function pollStats() {
       si.networkStats().catch(() => []),
       si.fsSize().catch(() => []),
       si.battery().catch(() => ({ hasbattery: false })),
-      si.cpuTemperature().catch(() => ({ main: null }))
+      si.cpuTemperature().catch(() => ({ main: null })),
     ]);
 
     const payload = {
@@ -345,39 +359,38 @@ async function pollStats() {
       platform: os.platform(),
       release: os.release(),
       hostname: os.hostname(),
-      cpu: { 
+      cpu: {
         avgLoad: Math.max(0, Math.min(100, cpu.currentLoad || 0)),
-        cores: (cpu.cpus || []).map(c => Math.max(0, Math.min(100, c.load || 0)))
+        cores: (cpu.cpus || []).map((c) => Math.max(0, Math.min(100, c.load || 0))),
       },
-      mem: { 
+      mem: {
         total: Math.max(0, mem.total || 0),
         free: Math.max(0, mem.free || 0),
-        used: Math.max(0, mem.active || 0)
+        used: Math.max(0, mem.active || 0),
       },
-      net: (net || []).slice(0, 10).map(n => ({
+      net: (net || []).slice(0, 10).map((n) => ({
         iface: String(n.iface || 'unknown').slice(0, 50),
         rx: Math.max(0, n.rx_bytes || 0),
         tx: Math.max(0, n.tx_bytes || 0),
         rx_sec: Math.max(0, n.rx_sec || 0),
-        tx_sec: Math.max(0, n.tx_sec || 0)
+        tx_sec: Math.max(0, n.tx_sec || 0),
       })),
-      disks: (disk || []).slice(0, 20).map(d => ({
+      disks: (disk || []).slice(0, 20).map((d) => ({
         fs: String(d.fs || 'unknown').slice(0, 100),
         used: Math.max(0, d.used || 0),
         size: Math.max(0, d.size || 0),
-        mount: String(d.mount || 'unknown').slice(0, 200)
+        mount: String(d.mount || 'unknown').slice(0, 200),
       })),
       battery: bat || { hasbattery: false },
-      temperature: temp || { main: null }
+      temperature: temp || { main: null },
     };
 
     mainWindow.webContents.send('stats:update', payload);
     statsRetryCount = 0; // Reset retry count on success
-    
   } catch (error) {
     log.error('Stats polling error:', error);
     statsRetryCount++;
-    
+
     if (statsRetryCount >= MAX_RETRIES) {
       log.error(`Stats polling failed ${MAX_RETRIES} times, backing off`);
       statsRetryCount = 0;
@@ -398,13 +411,12 @@ app.whenReady().then(async () => {
   try {
     log.info('App ready, setting up security...');
     setupSecurity();
-    
+
     log.info('Creating main window...');
     createWindow();
-    
+
     log.info('Starting system monitoring...');
     pollStats();
-    
   } catch (error) {
     log.error('Failed to initialize app:', error);
     app.quit();
