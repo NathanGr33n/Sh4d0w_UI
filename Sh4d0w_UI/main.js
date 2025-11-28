@@ -48,6 +48,7 @@ try {
 }
 
 const si = require('systeminformation');
+const { RateLimiter } = require('limiter');
 
 let mainWindow;
 let shellPty;
@@ -59,6 +60,15 @@ const monitoringConfig = config.getMonitoringConfig();
 const STATS_INTERVAL = monitoringConfig.pollInterval;
 const MAX_RETRIES = monitoringConfig.maxRetries;
 let statsRetryCount = 0;
+
+// Security: IPC Rate limiters to prevent DoS attacks
+const rateLimiters = {
+  termWrite: new RateLimiter({ tokensPerInterval: 100, interval: 'second' }),
+  termResize: new RateLimiter({ tokensPerInterval: 10, interval: 'second' }),
+  termInit: new RateLimiter({ tokensPerInterval: 5, interval: 'minute' }),
+  debugCommand: new RateLimiter({ tokensPerInterval: 5, interval: 'minute' }),
+  rendererError: new RateLimiter({ tokensPerInterval: 50, interval: 'minute' }),
+};
 
 // Security: Set up Content Security Policy
 function setupSecurity() {
@@ -274,9 +284,16 @@ function startShell(cols = 120, rows = 32) {
   }
 }
 
-// Enhanced IPC handlers with validation
-ipcMain.on('term:init', (_evt, size) => {
+// Enhanced IPC handlers with validation and rate limiting
+ipcMain.on('term:init', async (_evt, size) => {
   try {
+    // Rate limiting
+    const remaining = await rateLimiters.termInit.removeTokens(1);
+    if (remaining < 0) {
+      log.warn('Terminal init rate limit exceeded');
+      return;
+    }
+
     if (!shellPty) {
       const validSize = validateSize(size);
       if (validSize) {
@@ -304,8 +321,15 @@ ipcMain.on('term:resize', (_evt, size) => {
   }
 });
 
-ipcMain.on('term:write', (_evt, data) => {
+ipcMain.on('term:write', async (_evt, data) => {
   try {
+    // Rate limiting
+    const remaining = await rateLimiters.termWrite.removeTokens(1);
+    if (remaining < 0) {
+      log.warn('Terminal write rate limit exceeded');
+      return;
+    }
+
     if (shellPty) {
       const sanitizedData = sanitizeTerminalData(data);
       shellPty.write(sanitizedData);
@@ -316,11 +340,22 @@ ipcMain.on('term:write', (_evt, data) => {
 });
 
 // Renderer error reporting
-ipcMain.on('renderer:error', (_evt, errorData) => {
-  errorHandler.handleError(new Error(errorData.message), 'renderer', {
-    ...errorData,
-    source: 'renderer-process',
-  });
+ipcMain.on('renderer:error', async (_evt, errorData) => {
+  try {
+    // Rate limiting
+    const remaining = await rateLimiters.rendererError.removeTokens(1);
+    if (remaining < 0) {
+      log.warn('Renderer error reporting rate limit exceeded');
+      return;
+    }
+
+    errorHandler.handleError(new Error(errorData.message), 'renderer', {
+      ...errorData,
+      source: 'renderer-process',
+    });
+  } catch (error) {
+    log.error('Error handling renderer error:', error);
+  }
 });
 
 // Debug info handler
@@ -339,8 +374,15 @@ ipcMain.handle('debug:get-info', async () => {
 });
 
 // Debug command handler
-ipcMain.on('debug:command', (_evt, command) => {
+ipcMain.on('debug:command', async (_evt, command) => {
   try {
+    // Rate limiting
+    const remaining = await rateLimiters.debugCommand.removeTokens(1);
+    if (remaining < 0) {
+      log.warn('Debug command rate limit exceeded');
+      return;
+    }
+
     switch (command.type) {
       case 'health-check':
         logger.logSystemHealth();
