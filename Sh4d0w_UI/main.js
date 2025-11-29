@@ -74,14 +74,16 @@ const rateLimiters = {
 function setupSecurity() {
   const defaultSession = session.defaultSession;
 
-  // CSP Header
+  // CSP Header - Removed unsafe-inline for better XSS protection
+  // Note: Google Fonts requires some inline styles, kept for compatibility
+  // CDN scripts now require SRI hashes in HTML
   defaultSession.webRequest.onHeadersReceived((details, callback) => {
     callback({
       responseHeaders: {
         ...details.responseHeaders,
         'Content-Security-Policy': [
           "default-src 'self';",
-          "script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline';",
+          "script-src 'self' https://cdn.jsdelivr.net;",
           "style-src 'self' https://cdn.jsdelivr.net https://fonts.googleapis.com 'unsafe-inline';",
           "font-src 'self' https://fonts.gstatic.com;",
           "connect-src 'self';",
