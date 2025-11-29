@@ -69,7 +69,24 @@ describe('Validation Helpers', () => {
     if (typeof data !== 'string') {
       return '';
     }
-    return data.slice(0, 10000); // Limit length to prevent memory issues
+
+    // Limit length to prevent memory exhaustion
+    let sanitized = data.slice(0, 10000);
+
+    // Security: Filter dangerous terminal escape sequences
+    // Remove OSC (Operating System Command) sequences that could be exploited
+    sanitized = sanitized.replace(/\x1b\][^\x1b\x07]*[\x1b\x07]/g, '');
+
+    // Remove CSI sequences that could manipulate terminal state unsafely
+    sanitized = sanitized.replace(/\x1b\[[0-9;]*t/g, '');
+
+    // Remove PM (Privacy Message) and APC (Application Program Command) sequences
+    sanitized = sanitized.replace(/\x1b[_^][^\x1b]*\x1b\\/g, '');
+
+    // Remove potentially dangerous DCS (Device Control String) sequences
+    sanitized = sanitized.replace(/\x1bP[^\x1b]*\x1b\\/g, '');
+
+    return sanitized;
   }
 
   describe('sanitizeTerminalData', () => {
@@ -98,9 +115,37 @@ describe('Validation Helpers', () => {
       expect(sanitizeTerminalData('')).toBe('');
     });
 
-    it('should preserve special characters within limit', () => {
-      const input = '\n\r\t\x1b[31mRed Text\x1b[0m';
+    it('should preserve safe ANSI color codes', () => {
+      const input = '\x1b[31mRed Text\x1b[0m';
       expect(sanitizeTerminalData(input)).toBe(input);
+    });
+
+    it('should remove dangerous OSC sequences', () => {
+      // OSC sequences can execute commands
+      const input = 'normal text\x1b]0;malicious\x07more text';
+      const result = sanitizeTerminalData(input);
+      expect(result).toBe('normal textmore text');
+    });
+
+    it('should remove window manipulation sequences', () => {
+      // CSI t sequences can manipulate terminal window
+      const input = 'text\x1b[8;24;80tbefore';
+      const result = sanitizeTerminalData(input);
+      expect(result).toBe('textbefore');
+    });
+
+    it('should remove DCS sequences', () => {
+      // Device Control String sequences
+      const input = 'start\x1bPdangerous\x1b\\end';
+      const result = sanitizeTerminalData(input);
+      expect(result).toBe('startend');
+    });
+
+    it('should remove PM and APC sequences', () => {
+      // Privacy Message and Application Program Command
+      const input = 'text\x1b_pm\x1b\\more\x1b^apc\x1b\\end';
+      const result = sanitizeTerminalData(input);
+      expect(result).toBe('textmoreend');
     });
 
     it('should prevent memory exhaustion attacks', () => {

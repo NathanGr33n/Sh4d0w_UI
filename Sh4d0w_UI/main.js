@@ -196,8 +196,26 @@ function sanitizeTerminalData(data) {
   if (typeof data !== 'string') {
     return '';
   }
-  // Basic sanitization - remove potential control sequences that could be harmful
-  return data.slice(0, 10000); // Limit length to prevent memory issues
+
+  // Limit length to prevent memory exhaustion
+  let sanitized = data.slice(0, 10000);
+
+  // Security: Filter dangerous terminal escape sequences
+  // Remove OSC (Operating System Command) sequences that could be exploited
+  // OSC sequences: ESC ] ... ESC \ or ESC ] ... BEL
+  sanitized = sanitized.replace(/\x1b\][^\x1b\x07]*[\x1b\x07]/g, '');
+
+  // Remove CSI sequences that could manipulate terminal state unsafely
+  // Block window manipulation sequences (CSI t)
+  sanitized = sanitized.replace(/\x1b\[[0-9;]*t/g, '');
+
+  // Remove PM (Privacy Message) and APC (Application Program Command) sequences
+  sanitized = sanitized.replace(/\x1b[_^][^\x1b]*\x1b\\/g, '');
+
+  // Remove potentially dangerous DCS (Device Control String) sequences
+  sanitized = sanitized.replace(/\x1bP[^\x1b]*\x1b\\/g, '');
+
+  return sanitized;
 }
 
 // Resource cleanup with enhanced error handling
