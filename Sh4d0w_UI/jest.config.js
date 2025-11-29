@@ -8,6 +8,10 @@ module.exports = {
     '**/?(*.)+(spec|test).ts',
     '**/?(*.)+(spec|test).js'
   ],
+  testPathIgnorePatterns: [
+    '/node_modules/',
+    '/dist/'
+  ],
   transform: {
     '^.+\\.ts$': ['ts-jest', {
       tsconfig: {
