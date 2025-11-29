@@ -11,6 +11,7 @@ const config = require(
 );
 const Logger = require('./logger');
 const ErrorHandler = require('./errorHandler');
+const SessionManager = require('./sessionManager');
 
 // Initialize advanced logging system
 const securityConfig = config.getSecurityConfig();
@@ -22,6 +23,9 @@ const logger = new Logger({
 
 // Initialize error handler
 const errorHandler = new ErrorHandler(logger);
+
+// Initialize session manager for terminal persistence
+const sessionManager = new SessionManager(logger);
 
 // Convenience logging functions
 const log = {
@@ -54,6 +58,14 @@ let mainWindow;
 let shellPty;
 let statsInterval;
 let isShuttingDown = false;
+
+// Terminal session state for persistence
+let currentSession = {
+  cwd: process.cwd(),
+  shell: process.platform === 'win32' ? 'powershell.exe' : process.env.SHELL || 'bash',
+  cols: 120,
+  rows: 32,
+};
 
 // Rate limiting for system monitoring - now configurable
 const monitoringConfig = config.getMonitoringConfig();
@@ -203,6 +215,15 @@ function cleanup() {
     errorHandler.cleanup();
   }
 
+  // Save terminal session before cleanup
+  if (sessionManager && shellPty) {
+    try {
+      sessionManager.saveSession(currentSession);
+    } catch (err) {
+      log.error('Failed to save terminal session:', err);
+    }
+  }
+
   // Clear stats interval
   if (statsInterval) {
     clearTimeout(statsInterval);
@@ -229,15 +250,29 @@ function cleanup() {
   }
 }
 
-function startShell(cols = 120, rows = 32) {
+function startShell(cols = 120, rows = 32, cwd = null, shell = null) {
   try {
     if (shellPty) {
       log.warn('Shell already running, skipping initialization');
       return;
     }
 
-    const shell = process.platform === 'win32' ? 'powershell.exe' : process.env.SHELL || 'bash';
-    log.info(`Starting shell: ${shell} (${cols}x${rows})`);
+    // Use provided shell or default
+    const shellToUse =
+      shell || (process.platform === 'win32' ? 'powershell.exe' : process.env.SHELL || 'bash');
+
+    // Use provided cwd or current working directory
+    const cwdToUse = cwd || process.cwd();
+
+    log.info(`Starting shell: ${shellToUse} (${cols}x${rows}) in ${cwdToUse}`);
+
+    // Update current session state
+    currentSession = {
+      cwd: cwdToUse,
+      shell: shellToUse,
+      cols,
+      rows,
+    };
 
     // Security: Whitelist only safe environment variables
     // Do NOT pass sensitive vars like AWS_*, GITHUB_TOKEN, NPM_TOKEN, etc.
@@ -259,14 +294,14 @@ function startShell(cols = 120, rows = 32) {
       TMP: process.env.TMP || process.env.TEMP || '',
       // Unix-specific
       LOGNAME: process.env.LOGNAME || '',
-      PWD: process.cwd(),
+      PWD: cwdToUse,
     };
 
-    shellPty = pty.spawn(shell, [], {
+    shellPty = pty.spawn(shellToUse, [], {
       name: 'xterm-color',
       cols: Math.max(1, Math.min(500, cols)),
       rows: Math.max(1, Math.min(200, rows)),
-      cwd: process.cwd(),
+      cwd: cwdToUse,
       env: safeEnv,
     });
 
@@ -297,13 +332,20 @@ ipcMain.on('term:init', async (_evt, size) => {
     }
 
     if (!shellPty) {
+      // Try to restore previous session
+      const savedSession = sessionManager.loadLastSession();
+
       const validSize = validateSize(size);
-      if (validSize) {
-        startShell(size.cols, size.rows);
-      } else {
-        log.warn('Invalid terminal size provided, using defaults');
-        startShell();
+      const cols = validSize ? size.cols : savedSession?.cols || 120;
+      const rows = validSize ? size.rows : savedSession?.rows || 32;
+      const cwd = savedSession?.cwd || null;
+      const shell = savedSession?.shell || null;
+
+      if (savedSession) {
+        log.info('Restoring previous terminal session');
       }
+
+      startShell(cols, rows, cwd, shell);
     }
   } catch (error) {
     log.error('Error in term:init handler:', error);
@@ -314,6 +356,9 @@ ipcMain.on('term:resize', (_evt, size) => {
   try {
     if (shellPty && validateSize(size)) {
       shellPty.resize(size.cols, size.rows);
+      // Update session state
+      currentSession.cols = size.cols;
+      currentSession.rows = size.rows;
       log.info(`Terminal resized to ${size.cols}x${size.rows}`);
     } else {
       log.warn('Invalid resize parameters or no terminal');

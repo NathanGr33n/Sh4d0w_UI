@@ -17,7 +17,7 @@ module.exports = [
     ]
   },
   {
-    files: ['**/*.ts', '**/*.js'],
+    files: ['**/*.ts'],
     languageOptions: {
       parser: typescriptParser,
       ecmaVersion: 2020,
@@ -78,7 +78,28 @@ module.exports = [
     }
   },
   {
-    files: ['*.js'],
+    files: ['**/__tests__/**/*.js', '**/*.test.js'],
+    languageOptions: {
+      parser: undefined,
+      parserOptions: {},
+      globals: {
+        describe: 'readonly',
+        it: 'readonly',
+        test: 'readonly',
+        expect: 'readonly',
+        beforeEach: 'readonly',
+        afterEach: 'readonly',
+        beforeAll: 'readonly',
+        afterAll: 'readonly',
+        jest: 'readonly'
+      }
+    },
+    rules: {
+      '@typescript-eslint/no-var-requires': 'off'
+    }
+  },
+  {
+    files: ['*.js', 'main.js', 'sessionManager.js'],
     languageOptions: {
       parser: undefined,
       parserOptions: {}
