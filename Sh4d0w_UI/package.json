@@ -33,7 +33,7 @@
     "@typescript-eslint/eslint-plugin": "^8.48.0",
     "@typescript-eslint/parser": "^8.48.0",
     "electron": "^38.1.2",
-    "electron-builder": "25.0.5",
+    "electron-builder": "^26.0.12",
     "electron-mock-ipc": "^0.3.12",
     "eslint": "^9.39.1",
     "eslint-config-prettier": "^10.1.8",
