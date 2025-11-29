@@ -405,8 +405,14 @@ ipcMain.on('renderer:error', async (_evt, errorData) => {
   }
 });
 
-// Debug info handler
+// Debug info handler - Only available in development mode
 ipcMain.handle('debug:get-info', async () => {
+  // Security: Restrict debug commands to development mode
+  if (app.isPackaged) {
+    log.warn('Debug command attempted in production mode');
+    return { error: 'Debug commands disabled in production' };
+  }
+
   return {
     metrics: errorHandler.getMetrics(),
     systemHealth: {
@@ -420,9 +426,15 @@ ipcMain.handle('debug:get-info', async () => {
   };
 });
 
-// Debug command handler
+// Debug command handler - Only available in development mode
 ipcMain.on('debug:command', async (_evt, command) => {
   try {
+    // Security: Restrict debug commands to development mode
+    if (app.isPackaged) {
+      log.warn('Debug command attempted in production mode', { command: command.type });
+      return;
+    }
+
     // Rate limiting
     const remaining = await rateLimiters.debugCommand.removeTokens(1);
     if (remaining < 0) {
