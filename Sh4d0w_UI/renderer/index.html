@@ -137,6 +137,27 @@
   </div>
 </div>
 
+<!-- Terminal Search Panel -->
+<div id="search-panel" class="search-panel hidden">
+  <div class="search-container">
+    <input type="text" id="search-input" placeholder="Search in terminal..." />
+    <div class="search-controls">
+      <button class="search-btn" id="search-prev" title="Previous (Shift+Enter)">↑</button>
+      <button class="search-btn" id="search-next" title="Next (Enter)">↓</button>
+      <label class="search-option">
+        <input type="checkbox" id="search-case-sensitive" />
+        <span>Aa</span>
+      </label>
+      <label class="search-option">
+        <input type="checkbox" id="search-regex" />
+        <span>.*</span>
+      </label>
+      <span class="search-matches" id="search-matches"></span>
+      <button class="search-close" id="search-close" title="Close (ESC)">×</button>
+    </div>
+  </div>
+</div>
+
 <script src="themes.js"></script>
 <script src="errorBoundary.js"></script>
 <script src="renderer.js"></script>
