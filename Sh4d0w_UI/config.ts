@@ -24,6 +24,19 @@ export interface MonitoringConfig {
   maxRetries: number;
   enableBatteryMonitoring: boolean;
   enableTemperatureMonitoring: boolean;
+  // Adaptive polling settings
+  adaptivePolling: boolean;
+  slowPollWhenMinimized: boolean;
+  minimizedPollInterval: number;
+  // User-configurable metrics
+  enabledMetrics: {
+    cpu: boolean;
+    memory: boolean;
+    network: boolean;
+    disk: boolean;
+    battery: boolean;
+    temperature: boolean;
+  };
 }
 
 export type LogLevel = 'error' | 'warn' | 'info';
@@ -73,6 +86,20 @@ const schema = {
       maxRetries: { type: 'number', minimum: 1, maximum: 10, default: 3 },
       enableBatteryMonitoring: { type: 'boolean', default: true },
       enableTemperatureMonitoring: { type: 'boolean', default: true },
+      adaptivePolling: { type: 'boolean', default: true },
+      slowPollWhenMinimized: { type: 'boolean', default: true },
+      minimizedPollInterval: { type: 'number', minimum: 2000, maximum: 30000, default: 5000 },
+      enabledMetrics: {
+        type: 'object',
+        properties: {
+          cpu: { type: 'boolean', default: true },
+          memory: { type: 'boolean', default: true },
+          network: { type: 'boolean', default: true },
+          disk: { type: 'boolean', default: true },
+          battery: { type: 'boolean', default: true },
+          temperature: { type: 'boolean', default: true },
+        },
+      },
     },
   },
   security: {
@@ -110,6 +137,17 @@ const defaults: AppConfig = {
     maxRetries: 3,
     enableBatteryMonitoring: true,
     enableTemperatureMonitoring: true,
+    adaptivePolling: true,
+    slowPollWhenMinimized: true,
+    minimizedPollInterval: 5000,
+    enabledMetrics: {
+      cpu: true,
+      memory: true,
+      network: true,
+      disk: true,
+      battery: true,
+      temperature: true,
+    },
   },
   security: {
     allowExternalRequests: false,
