@@ -6,6 +6,31 @@ let errorHandler;
 let clockInterval;
 let resizeObserver;
 
+// Global error handlers for uncaught errors
+window.onerror = (message, source, lineno, colno, error) => {
+  console.error('[Renderer] Uncaught error:', { message, source, lineno, colno, error });
+  if (window.edx?.sendError) {
+    window.edx.sendError({
+      message: message?.toString() || 'Unknown error',
+      stack: error?.stack || '',
+      source: 'window.onerror',
+    });
+  }
+  return true; // Prevent default error handling
+};
+
+window.onunhandledrejection = (event) => {
+  console.error('[Renderer] Unhandled promise rejection:', event.reason);
+  if (window.edx?.sendError) {
+    window.edx.sendError({
+      message: event.reason?.message || 'Unhandled promise rejection',
+      stack: event.reason?.stack || '',
+      source: 'unhandledrejection',
+    });
+  }
+  event.preventDefault(); // Prevent default handling
+};
+
 // Wait for error handler to be available
 function initializeTerminal() {
   errorHandler = window.rendererErrorHandler;
@@ -134,26 +159,32 @@ function initializeStats() {
       errorHandler.safe(() => {
         errorHandler.startTiming('stats-update');
         
-        if (els.host) els.host.textContent = s.hostname || 'Unknown';
-        if (els.os) els.os.textContent = `${s.platform || 'Unknown'} ${s.release || ''}`;
-        if (els.cpu) els.cpu.textContent = `${(s.cpu?.avgLoad || 0).toFixed(1)}%`;
-        if (els.temp) els.temp.textContent = s.temperature?.main ? `${s.temperature.main.toFixed(0)}°C` : '—';
-        if (els.mem) els.mem.textContent = `${bytes(s.mem?.used)} / ${bytes(s.mem?.total)}`;
+        // Guard against null/undefined stats with fallbacks
+        try {
+          if (els.host) els.host.textContent = s?.hostname || 'Unknown';
+          if (els.os) els.os.textContent = `${s?.platform || 'Unknown'} ${s?.release || ''}`;
+          if (els.cpu) els.cpu.textContent = `${(s?.cpu?.avgLoad || 0).toFixed(1)}%`;
+          if (els.temp) els.temp.textContent = s?.temperature?.main ? `${s.temperature.main.toFixed(0)}°C` : '—';
+          if (els.mem) els.mem.textContent = `${bytes(s?.mem?.used)} / ${bytes(s?.mem?.total)}`;
         
-        if (els.net) {
-          els.net.innerHTML = (s.net || []).map(n => 
-            `<div class="kv"><label>${n.iface || 'Unknown'}</label><span>↓ ${bytes(n.rx_sec)}/s • ↑ ${bytes(n.tx_sec)}/s</span></div>`
-          ).join('');
-        }
-        
-        if (els.disk) {
-          els.disk.innerHTML = (s.disks || []).map(d => {
-            const pct = d.size > 0 ? (d.used / d.size) * 100 : 0;
-            return `<div class="disk">
-              <div class="row"><span>${d.mount || 'Unknown'}</span><span>${bytes(d.used)} / ${bytes(d.size)}</span></div>
-              <div class="bar"><i style="width:${pct.toFixed(1)}%"></i></div>
-            </div>`;
-          }).join('');
+          if (els.net && Array.isArray(s?.net)) {
+            els.net.innerHTML = s.net.map(n => 
+              `<div class="kv"><label>${n?.iface || 'Unknown'}</label><span>↓ ${bytes(n?.rx_sec)}/s • ↑ ${bytes(n?.tx_sec)}/s</span></div>`
+            ).join('');
+          }
+          
+          if (els.disk && Array.isArray(s?.disks)) {
+            els.disk.innerHTML = s.disks.map(d => {
+              const pct = d?.size > 0 ? ((d.used || 0) / d.size) * 100 : 0;
+              return `<div class="disk">
+                <div class="row"><span>${d?.mount || 'Unknown'}</span><span>${bytes(d?.used)} / ${bytes(d?.size)}</span></div>
+                <div class="bar"><i style="width:${pct.toFixed(1)}%"></i></div>
+              </div>`;
+            }).join('');
+          }
+        } catch (statsError) {
+          console.error('[Renderer] Error updating stats:', statsError);
+          // Stats update failed but continue - don't crash the app
         }
         
         errorHandler.endTiming('stats-update');
