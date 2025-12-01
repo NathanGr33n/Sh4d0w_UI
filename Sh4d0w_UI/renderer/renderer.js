@@ -3,6 +3,8 @@
 // Enhanced renderer with error handling
 let term;
 let errorHandler;
+let clockInterval;
+let resizeObserver;
 
 // Wait for error handler to be available
 function initializeTerminal() {
@@ -50,7 +52,8 @@ function initializeTerminal() {
       }, null, 'terminal-fit');
     }
     
-    new ResizeObserver(fit).observe(termEl);
+    resizeObserver = new ResizeObserver(fit);
+    resizeObserver.observe(termEl);
     
     // Enhanced terminal data handling
     if (window.edx?.onTermData) {
@@ -92,7 +95,7 @@ function initializeClock() {
     }, null, 'clock-update');
   };
   
-  setInterval(updateClock, 500);
+  clockInterval = setInterval(updateClock, 500);
   updateClock(); // Initial update
 }
 
@@ -291,6 +294,32 @@ function initializePreferences() {
     }
   }
 }
+
+// Cleanup function to prevent memory leaks
+function cleanupRenderer() {
+  // Disconnect resize observer
+  if (resizeObserver) {
+    resizeObserver.disconnect();
+    resizeObserver = null;
+  }
+
+  // Clear clock interval
+  if (clockInterval) {
+    clearInterval(clockInterval);
+    clockInterval = null;
+  }
+
+  // Dispose terminal
+  if (term) {
+    term.dispose();
+    term = null;
+  }
+
+  console.log('[Renderer] Cleanup completed');
+}
+
+// Register cleanup on page unload
+window.addEventListener('beforeunload', cleanupRenderer);
 
 // Context Menu Management
 function initializeContextMenu() {
