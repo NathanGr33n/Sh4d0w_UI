@@ -5,6 +5,7 @@ let term;
 let errorHandler;
 let clockInterval;
 let resizeObserver;
+let currentTheme = 'shadow';
 
 // Global error handlers for uncaught errors
 window.onerror = (message, source, lineno, colno, error) => {
@@ -200,9 +201,60 @@ if (document.readyState === 'loading') {
   initializeTerminal();
 }
 
+// Theme Management
+function initializeTheme() {
+  // Load and apply saved theme
+  if (window.edx?.getTheme) {
+    window.edx.getTheme().then(themeName => {
+      applyTheme(themeName || 'shadow');
+    }).catch(err => {
+      console.error('Failed to load theme:', err);
+      applyTheme('shadow');
+    });
+  }
+}
+
+function applyTheme(themeName) {
+  if (!window.themes || !window.themes[themeName]) {
+    console.warn('Theme not found:', themeName);
+    return;
+  }
+  
+  currentTheme = themeName;
+  const theme = window.themes[themeName];
+  const root = document.documentElement;
+  
+  // Apply CSS variables
+  root.style.setProperty('--bg-0', theme.colors.bg0);
+  root.style.setProperty('--bg-1', theme.colors.bg1);
+  root.style.setProperty('--bg-2', theme.colors.bg2);
+  root.style.setProperty('--fg', theme.colors.fg);
+  root.style.setProperty('--muted', theme.colors.muted);
+  root.style.setProperty('--accent', theme.colors.accent);
+  root.style.setProperty('--accent-2', theme.colors.accent2);
+  root.style.setProperty('--aubergine', theme.colors.special);
+  root.style.setProperty('--grid', theme.colors.grid);
+  
+  // Apply terminal colors if terminal exists
+  if (term) {
+    term.options.theme = {
+      background: theme.terminal.background,
+      foreground: theme.terminal.foreground,
+      cursor: theme.terminal.cursor,
+      black: theme.terminal.black,
+      brightBlack: theme.terminal.brightBlack,
+      white: theme.terminal.white,
+      brightWhite: theme.terminal.brightWhite,
+    };
+  }
+  
+  console.log('Theme applied:', themeName);
+}
+
 // Initialize other components after a short delay
 setTimeout(() => {
   if (window.rendererErrorHandler) {
+    initializeTheme();
     initializeClock();
     initializeStats();
     initializePreferences();
@@ -270,6 +322,10 @@ function initializePreferences() {
       const monitoring = await window.edex.getConfig('monitoring');
       const terminal = await window.edx.getConfig('terminal');
       const security = await window.edx.getConfig('security');
+      const theme = await window.edx.getTheme();
+
+      // Theme
+      document.getElementById('pref-theme').value = theme || 'shadow';
 
       // Monitoring metrics
       document.getElementById('pref-metric-cpu').checked = monitoring?.enabledMetrics?.cpu ?? true;
@@ -298,6 +354,11 @@ function initializePreferences() {
 
   async function savePreferences() {
     try {
+      // Save theme and apply immediately
+      const selectedTheme = document.getElementById('pref-theme').value;
+      await window.edx.setTheme(selectedTheme);
+      applyTheme(selectedTheme);
+
       // Save monitoring metrics
       await window.edex.setConfig('monitoring.enabledMetrics.cpu', document.getElementById('pref-metric-cpu').checked);
       await window.edex.setConfig('monitoring.enabledMetrics.memory', document.getElementById('pref-metric-memory').checked);
@@ -317,9 +378,9 @@ function initializePreferences() {
 
       // Save security settings
       await window.edex.setConfig('security.enableLogging', document.getElementById('pref-enable-logging').checked);
-      await window.edx.setConfig('security.logLevel', document.getElementById('pref-log-level').value);
+      await window.edex.setConfig('security.logLevel', document.getElementById('pref-log-level').value);
 
-      alert('Settings saved! Some changes may require restart.');
+      alert('Settings saved! Theme applied immediately.');
       closePreferences();
     } catch (error) {
       console.error('Failed to save preferences:', error);
