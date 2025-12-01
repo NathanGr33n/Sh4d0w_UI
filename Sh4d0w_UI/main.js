@@ -242,6 +242,7 @@ function sanitizeTerminalData(data) {
 }
 
 // Resource cleanup with enhanced error handling
+// Prevents memory leaks by properly disposing of all resources
 function cleanup() {
   if (isShuttingDown) {
     return;
@@ -271,7 +272,7 @@ function cleanup() {
     statsInterval = null;
   }
 
-  // Kill shell process
+  // Kill shell process and free memory
   if (shellPty) {
     try {
       shellPty.kill();
@@ -281,6 +282,15 @@ function cleanup() {
       errorHandler.handleError(err, 'cleanup-shell');
     }
   }
+
+  // Remove all IPC listeners to prevent memory leaks
+  // Note: IPC handlers are automatically cleaned up on app quit,
+  // but we explicitly clear them here for clarity
+  ipcMain.removeAllListeners('term:init');
+  ipcMain.removeAllListeners('term:resize');
+  ipcMain.removeAllListeners('term:write');
+  ipcMain.removeAllListeners('renderer:error');
+  ipcMain.removeAllListeners('debug:command');
 
   log.timeEnd('cleanup');
   log.info('Cleanup completed');
