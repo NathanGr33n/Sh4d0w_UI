@@ -172,6 +172,7 @@ setTimeout(() => {
     initializeClock();
     initializeStats();
     initializePreferences();
+    initializeContextMenu();
   }
 }, 200);
 
@@ -287,6 +288,113 @@ function initializePreferences() {
     } catch (error) {
       console.error('Failed to save preferences:', error);
       alert('Failed to save settings');
+    }
+  }
+}
+
+// Context Menu Management
+function initializeContextMenu() {
+  const contextMenu = document.getElementById('context-menu');
+  const terminalEl = document.getElementById('terminal');
+  
+  if (!contextMenu || !terminalEl) return;
+
+  // Prevent default context menu on terminal
+  terminalEl.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    showContextMenu(e.clientX, e.clientY);
+  });
+
+  // Close context menu on click outside
+  document.addEventListener('click', (e) => {
+    if (!contextMenu.contains(e.target)) {
+      hideContextMenu();
+    }
+  });
+
+  // Handle menu item clicks
+  contextMenu.addEventListener('click', (e) => {
+    const item = e.target.closest('.context-menu-item');
+    if (!item) return;
+
+    const action = item.dataset.action;
+    handleContextAction(action);
+    hideContextMenu();
+  });
+
+  function showContextMenu(x, y) {
+    // Position menu near cursor, but keep it on screen
+    const menuWidth = 180;
+    const menuHeight = 200; // approximate
+    
+    let left = x;
+    let top = y;
+
+    if (left + menuWidth > window.innerWidth) {
+      left = window.innerWidth - menuWidth - 10;
+    }
+
+    if (top + menuHeight > window.innerHeight) {
+      top = window.innerHeight - menuHeight - 10;
+    }
+
+    contextMenu.style.left = left + 'px';
+    contextMenu.style.top = top + 'px';
+    contextMenu.classList.remove('hidden');
+  }
+
+  function hideContextMenu() {
+    contextMenu.classList.add('hidden');
+  }
+
+  function handleContextAction(action) {
+    if (!term) {
+      console.warn('Terminal not initialized');
+      return;
+    }
+
+    switch (action) {
+      case 'copy':
+        // Copy selected text from terminal
+        if (term.hasSelection()) {
+          const selection = term.getSelection();
+          navigator.clipboard.writeText(selection).catch(err => {
+            console.error('Failed to copy:', err);
+          });
+        }
+        break;
+
+      case 'paste':
+        // Paste from clipboard
+        navigator.clipboard.readText().then(text => {
+          if (window.edx?.sendTermData) {
+            window.edx.sendTermData(text);
+          }
+        }).catch(err => {
+          console.error('Failed to paste:', err);
+        });
+        break;
+
+      case 'selectall':
+        // Select all terminal content
+        term.selectAll();
+        break;
+
+      case 'clear':
+        // Clear terminal
+        term.clear();
+        break;
+
+      case 'preferences':
+        // Open preferences
+        document.dispatchEvent(new KeyboardEvent('keydown', {
+          key: 'F10',
+          bubbles: true
+        }));
+        break;
+
+      default:
+        console.warn('Unknown action:', action);
     }
   }
 }

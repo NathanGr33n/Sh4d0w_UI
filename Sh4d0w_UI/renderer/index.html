@@ -28,6 +28,17 @@
 <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"
         integrity="sha384-V3hKWaJa0eBPfGVE2o7pQ6GCnXLqrSYqO7YvY9+OPYnhXRj2WhV6vK5lM2rCNmHq"
         crossorigin="anonymous"></script>
+<!-- Context Menu -->
+<div id="context-menu" class="context-menu hidden">
+  <div class="context-menu-item" data-action="copy">Copy</div>
+  <div class="context-menu-item" data-action="paste">Paste</div>
+  <div class="context-menu-separator"></div>
+  <div class="context-menu-item" data-action="selectall">Select All</div>
+  <div class="context-menu-item" data-action="clear">Clear Terminal</div>
+  <div class="context-menu-separator"></div>
+  <div class="context-menu-item" data-action="preferences">Preferences...</div>
+</div>
+
 <!-- Preferences Panel Modal -->
 <div id="preferences-overlay" class="prefs-overlay hidden">
   <div class="prefs-panel">
