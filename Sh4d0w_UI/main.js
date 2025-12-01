@@ -12,6 +12,7 @@ const config = require(
 const Logger = require('./logger');
 const ErrorHandler = require('./errorHandler');
 const SessionManager = require('./sessionManager');
+const CommandHistory = require('./commandHistory');
 
 // Initialize advanced logging system
 const securityConfig = config.getSecurityConfig();
@@ -26,6 +27,9 @@ const errorHandler = new ErrorHandler(logger);
 
 // Initialize session manager for terminal persistence
 const sessionManager = new SessionManager(logger);
+
+// Initialize command history manager
+const commandHistory = new CommandHistory(logger);
 
 // Convenience logging functions
 const log = {
@@ -444,6 +448,12 @@ ipcMain.on('term:write', async (_evt, data) => {
     if (shellPty) {
       const sanitizedData = sanitizeTerminalData(data);
       shellPty.write(sanitizedData);
+      
+      // Track commands (detect Enter key)
+      if (data === '\r') {
+        // Command was executed - extract from terminal buffer would be complex
+        // Instead, we'll track this via a separate IPC for command tracking
+      }
     }
   } catch (error) {
     errorHandler.handleError(error, 'term:write');
@@ -585,6 +595,56 @@ ipcMain.handle('zoom:reset', async () => {
   } catch (error) {
     log.error('Zoom reset error:', error);
     return false;
+  }
+});
+
+// Command history handlers
+ipcMain.handle('history:add', async (_evt, command) => {
+  try {
+    if (!command || typeof command !== 'string') {
+      return false;
+    }
+    return commandHistory.addCommand(command, currentSession.cwd);
+  } catch (error) {
+    log.error('Failed to add command to history:', error);
+    return false;
+  }
+});
+
+ipcMain.handle('history:get', async (_evt, limit) => {
+  try {
+    return commandHistory.getHistory(limit);
+  } catch (error) {
+    log.error('Failed to get command history:', error);
+    return [];
+  }
+});
+
+ipcMain.handle('history:search', async (_evt, query) => {
+  try {
+    return commandHistory.search(query);
+  } catch (error) {
+    log.error('Failed to search command history:', error);
+    return [];
+  }
+});
+
+ipcMain.handle('history:clear', async () => {
+  try {
+    commandHistory.clear();
+    return true;
+  } catch (error) {
+    log.error('Failed to clear command history:', error);
+    return false;
+  }
+});
+
+ipcMain.handle('history:stats', async () => {
+  try {
+    return commandHistory.getStats();
+  } catch (error) {
+    log.error('Failed to get history stats:', error);
+    return { totalCommands: 0, oldestCommand: null, newestCommand: null };
   }
 });
 

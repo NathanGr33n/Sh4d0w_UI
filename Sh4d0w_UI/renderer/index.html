@@ -94,6 +94,32 @@
     </div>
   </div>
 </div>
+
+<!-- Command History Panel -->
+<div id="history-overlay" class="history-overlay hidden">
+  <div class="history-panel">
+    <div class="history-header">
+      <h2>Command History</h2>
+      <div class="history-search">
+        <input type="text" id="history-search-input" placeholder="Search commands..." />
+      </div>
+      <button class="history-close" title="Close (ESC)">×</button>
+    </div>
+    <div class="history-content">
+      <div id="history-list" class="history-list">
+        <div class="history-empty">No commands in history</div>
+      </div>
+    </div>
+    <div class="history-footer">
+      <div class="history-stats">
+        <span id="history-count">0 commands</span>
+      </div>
+      <button class="history-clear">Clear All</button>
+      <button class="history-cancel">Close</button>
+    </div>
+  </div>
+</div>
+
 <script src="errorBoundary.js"></script>
 <script src="renderer.js"></script>
 </body></html>
