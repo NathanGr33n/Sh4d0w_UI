@@ -171,5 +171,122 @@ setTimeout(() => {
   if (window.rendererErrorHandler) {
     initializeClock();
     initializeStats();
+    initializePreferences();
   }
 }, 200);
+
+// Preferences Panel Management
+function initializePreferences() {
+  const overlay = document.getElementById('preferences-overlay');
+  const closeBtn = document.querySelector('.prefs-close');
+  const saveBtn = document.querySelector('.prefs-save');
+  const resetBtn = document.querySelector('.prefs-reset');
+  const cancelBtn = document.querySelector('.prefs-cancel');
+
+  if (!overlay) return;
+
+  // Open preferences with Ctrl+, or F10
+  document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey && e.key === ',') || e.key === 'F10') {
+      e.preventDefault();
+      openPreferences();
+    }
+    if (e.key === 'Escape' && !overlay.classList.contains('hidden')) {
+      closePreferences();
+    }
+  });
+
+  // Close handlers
+  closeBtn?.addEventListener('click', closePreferences);
+  cancelBtn?.addEventListener('click', closePreferences);
+  overlay?.addEventListener('click', (e) => {
+    if (e.target === overlay) closePreferences();
+  });
+
+  // Save handler
+  saveBtn?.addEventListener('click', savePreferences);
+
+  // Reset handler
+  resetBtn?.addEventListener('click', async () => {
+    if (confirm('Reset all settings to defaults?')) {
+      const success = await window.edex.resetConfig();
+      if (success) {
+        alert('Settings reset to defaults!');
+        await loadPreferences();
+      } else {
+        alert('Failed to reset settings');
+      }
+    }
+  });
+
+  async function openPreferences() {
+    await loadPreferences();
+    overlay.classList.remove('hidden');
+  }
+
+  function closePreferences() {
+    overlay.classList.add('hidden');
+  }
+
+  async function loadPreferences() {
+    try {
+      const monitoring = await window.edex.getConfig('monitoring');
+      const terminal = await window.edx.getConfig('terminal');
+      const security = await window.edx.getConfig('security');
+
+      // Monitoring metrics
+      document.getElementById('pref-metric-cpu').checked = monitoring?.enabledMetrics?.cpu ?? true;
+      document.getElementById('pref-metric-memory').checked = monitoring?.enabledMetrics?.memory ?? true;
+      document.getElementById('pref-metric-network').checked = monitoring?.enabledMetrics?.network ?? true;
+      document.getElementById('pref-metric-disk').checked = monitoring?.enabledMetrics?.disk ?? true;
+      document.getElementById('pref-metric-battery').checked = monitoring?.enabledMetrics?.battery ?? true;
+      document.getElementById('pref-metric-temperature').checked = monitoring?.enabledMetrics?.temperature ?? true;
+
+      // Monitoring settings
+      document.getElementById('pref-adaptive-polling').checked = monitoring?.adaptivePolling ?? true;
+      document.getElementById('pref-slow-when-minimized').checked = monitoring?.slowPollWhenMinimized ?? true;
+      document.getElementById('pref-poll-interval').value = monitoring?.pollInterval ?? 1000;
+      document.getElementById('pref-minimized-interval').value = monitoring?.minimizedPollInterval ?? 5000;
+
+      // Terminal
+      document.getElementById('pref-font-size').value = terminal?.fontSize ?? 14;
+
+      // Security
+      document.getElementById('pref-enable-logging').checked = security?.enableLogging ?? true;
+      document.getElementById('pref-log-level').value = security?.logLevel ?? 'info';
+    } catch (error) {
+      console.error('Failed to load preferences:', error);
+    }
+  }
+
+  async function savePreferences() {
+    try {
+      // Save monitoring metrics
+      await window.edex.setConfig('monitoring.enabledMetrics.cpu', document.getElementById('pref-metric-cpu').checked);
+      await window.edex.setConfig('monitoring.enabledMetrics.memory', document.getElementById('pref-metric-memory').checked);
+      await window.edex.setConfig('monitoring.enabledMetrics.network', document.getElementById('pref-metric-network').checked);
+      await window.edex.setConfig('monitoring.enabledMetrics.disk', document.getElementById('pref-metric-disk').checked);
+      await window.edex.setConfig('monitoring.enabledMetrics.battery', document.getElementById('pref-metric-battery').checked);
+      await window.edex.setConfig('monitoring.enabledMetrics.temperature', document.getElementById('pref-metric-temperature').checked);
+
+      // Save monitoring settings
+      await window.edex.setConfig('monitoring.adaptivePolling', document.getElementById('pref-adaptive-polling').checked);
+      await window.edex.setConfig('monitoring.slowPollWhenMinimized', document.getElementById('pref-slow-when-minimized').checked);
+      await window.edex.setConfig('monitoring.pollInterval', parseInt(document.getElementById('pref-poll-interval').value, 10));
+      await window.edex.setConfig('monitoring.minimizedPollInterval', parseInt(document.getElementById('pref-minimized-interval').value, 10));
+
+      // Save terminal settings
+      await window.edex.setConfig('terminal.fontSize', parseInt(document.getElementById('pref-font-size').value, 10));
+
+      // Save security settings
+      await window.edex.setConfig('security.enableLogging', document.getElementById('pref-enable-logging').checked);
+      await window.edx.setConfig('security.logLevel', document.getElementById('pref-log-level').value);
+
+      alert('Settings saved! Some changes may require restart.');
+      closePreferences();
+    } catch (error) {
+      console.error('Failed to save preferences:', error);
+      alert('Failed to save settings');
+    }
+  }
+}

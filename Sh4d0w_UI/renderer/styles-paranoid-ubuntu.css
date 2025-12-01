@@ -140,3 +140,185 @@ main.grid::before{
 .xterm .xterm-rows{ text-shadow: 0 0 1px rgba(0,0,0,0.6); }
 .xterm .xterm-cursor-block{ background: var(--accent) !important; }
 .xterm .xterm-selection div{ background: rgba(44,0,30,0.45) !important; }
+
+/* Preferences Panel */
+.prefs-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: fadeIn 0.2s ease;
+}
+
+.prefs-overlay.hidden {
+  display: none;
+}
+
+.prefs-panel {
+  background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  width: 90%;
+  max-width: 700px;
+  max-height: 80vh;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.6), 0 0 60px rgba(233, 84, 32, 0.15);
+  display: flex;
+  flex-direction: column;
+  animation: slideIn 0.3s ease;
+}
+
+.prefs-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.prefs-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+}
+
+.prefs-close {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 32px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s, transform 0.2s;
+}
+
+.prefs-close:hover {
+  color: var(--accent);
+  transform: rotate(90deg);
+}
+
+.prefs-content {
+  padding: 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.prefs-section {
+  margin-bottom: 24px;
+}
+
+.prefs-section h3 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent-2);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.prefs-section label {
+  display: block;
+  margin: 8px 0;
+  color: var(--fg);
+  font-size: 14px;
+}
+
+.prefs-section input[type="checkbox"] {
+  margin-right: 8px;
+}
+
+.prefs-section input[type="number"],
+.prefs-section select {
+  background: var(--bg-0);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--fg);
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 14px;
+  margin-left: 8px;
+  width: 150px;
+}
+
+.prefs-section hr {
+  border: none;
+  border-top: 1px dashed rgba(255, 255, 255, 0.08);
+  margin: 16px 0;
+}
+
+.prefs-footer {
+  padding: 20px 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.prefs-footer button {
+  padding: 10px 24px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.prefs-save {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+.prefs-save:hover {
+  background: var(--accent-2);
+  box-shadow: 0 0 20px rgba(233, 84, 32, 0.4);
+}
+
+.prefs-reset {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--muted);
+}
+
+.prefs-reset:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--fg);
+}
+
+.prefs-cancel {
+  background: transparent;
+  color: var(--muted);
+}
+
+.prefs-cancel:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--fg);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
