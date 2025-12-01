@@ -208,6 +208,7 @@ setTimeout(() => {
     initializePreferences();
     initializeContextMenu();
     initializeZoomControls();
+    initializeCommandHistory();
   }
 }, 200);
 
@@ -550,5 +551,153 @@ function initializeZoomControls() {
     zoomIndicatorTimeout = setTimeout(() => {
       indicator.classList.remove('visible');
     }, 1500);
+  }
+}
+
+// Command History Panel Management
+function initializeCommandHistory() {
+  const overlay = document.getElementById('history-overlay');
+  const closeBtn = document.querySelector('.history-close');
+  const cancelBtn = document.querySelector('.history-cancel');
+  const clearBtn = document.querySelector('.history-clear');
+  const searchInput = document.getElementById('history-search-input');
+  const historyList = document.getElementById('history-list');
+  const historyCount = document.getElementById('history-count');
+  
+  let currentCommand = '';
+  
+  if (!overlay) return;
+
+  // Open history with Ctrl+H
+  document.addEventListener('keydown', (e) => {
+    if (e.ctrlKey && e.key === 'h') {
+      e.preventDefault();
+      openHistory();
+    }
+    if (e.key === 'Escape' && !overlay.classList.contains('hidden')) {
+      closeHistory();
+    }
+  });
+
+  // Track terminal input for commands
+  if (term) {
+    term.onData((data) => {
+      // Track keystrokes to build current command
+      if (data === '\r') {
+        // Enter pressed - save command
+        if (currentCommand.trim().length > 0 && window.edx?.addCommand) {
+          window.edx.addCommand(currentCommand.trim());
+        }
+        currentCommand = '';
+      } else if (data === '\x7F' || data === '\b') {
+        // Backspace
+        currentCommand = currentCommand.slice(0, -1);
+      } else if (data === '\x03') {
+        // Ctrl+C
+        currentCommand = '';
+      } else if (data.charCodeAt(0) >= 32 && data.charCodeAt(0) < 127) {
+        // Printable character
+        currentCommand += data;
+      }
+    });
+  }
+
+  // Close handlers
+  closeBtn?.addEventListener('click', closeHistory);
+  cancelBtn?.addEventListener('click', closeHistory);
+  overlay?.addEventListener('click', (e) => {
+    if (e.target === overlay) closeHistory();
+  });
+
+  // Search handler
+  searchInput?.addEventListener('input', async (e) => {
+    const query = e.target.value;
+    await loadHistory(query);
+  });
+
+  // Clear handler
+  clearBtn?.addEventListener('click', async () => {
+    if (confirm('Clear all command history?')) {
+      const success = await window.edx.clearHistory();
+      if (success) {
+        await loadHistory();
+      }
+    }
+  });
+
+  async function openHistory() {
+    await loadHistory();
+    overlay.classList.remove('hidden');
+    searchInput?.focus();
+  }
+
+  function closeHistory() {
+    overlay.classList.add('hidden');
+    if (searchInput) searchInput.value = '';
+  }
+
+  async function loadHistory(query = '') {
+    try {
+      let history;
+      if (query && query.trim().length > 0) {
+        history = await window.edx.searchHistory(query);
+      } else {
+        history = await window.edx.getHistory(100); // Get last 100 commands
+      }
+
+      const stats = await window.edx.getHistoryStats();
+      
+      // Update count
+      if (historyCount) {
+        const displayCount = query ? history.length : stats.totalCommands;
+        historyCount.textContent = `${displayCount} command${displayCount !== 1 ? 's' : ''}`;
+      }
+
+      // Render history list
+      if (historyList) {
+        if (history.length === 0) {
+          historyList.innerHTML = '<div class="history-empty">No commands found</div>';
+        } else {
+          historyList.innerHTML = history.reverse().map(entry => {
+            const date = new Date(entry.timestamp);
+            const timeStr = date.toLocaleTimeString();
+            const dateStr = date.toLocaleDateString();
+            
+            return `
+              <div class="history-item" data-command="${escapeHtml(entry.command)}">
+                <div class="history-item-command">${escapeHtml(entry.command)}</div>
+                <div class="history-item-meta">
+                  <span>📁 ${escapeHtml(entry.cwd)}</span>
+                  <span>🕒 ${timeStr} ${dateStr}</span>
+                </div>
+              </div>
+            `;
+          }).join('');
+
+          // Add click handlers to re-execute commands
+          historyList.querySelectorAll('.history-item').forEach(item => {
+            item.addEventListener('click', () => {
+              const command = item.dataset.command;
+              if (command && window.edx?.sendTermData) {
+                closeHistory();
+                // Send command to terminal
+                window.edx.sendTermData(command + '\r');
+              }
+            });
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load history:', error);
+      if (historyList) {
+        historyList.innerHTML = '<div class="history-empty">Failed to load history</div>';
+      }
+    }
+  }
+
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
   }
 }

@@ -44,4 +44,10 @@ contextBridge.exposeInMainWorld('edex', {
   setZoom: (level) => ipcRenderer.invoke('zoom:set', level),
   getZoom: () => ipcRenderer.invoke('zoom:get'),
   resetZoom: () => ipcRenderer.invoke('zoom:reset'),
+  // Command history
+  addCommand: (command) => ipcRenderer.invoke('history:add', command),
+  getHistory: (limit) => ipcRenderer.invoke('history:get', limit),
+  searchHistory: (query) => ipcRenderer.invoke('history:search', query),
+  clearHistory: () => ipcRenderer.invoke('history:clear'),
+  getHistoryStats: () => ipcRenderer.invoke('history:stats'),
 });
