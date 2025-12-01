@@ -262,6 +262,7 @@ setTimeout(() => {
     initializeZoomControls();
     initializeCommandHistory();
     initializeTerminalSearch();
+    initializeGitStatus();
   }
 }, 200);
 
@@ -939,4 +940,65 @@ function initializeTerminalSearch() {
       searchNext.disabled = false;
     }
   }
+}
+
+// Git Status Integration
+function initializeGitStatus() {
+  const gitStatusEl = document.getElementById('git-status');
+  const gitBranchEl = document.getElementById('git-branch');
+  const gitChangesEl = document.getElementById('git-changes');
+  
+  if (!gitStatusEl || !window.edx?.getGitStatus) return;
+
+  // Update git status periodically
+  async function updateGitStatus() {
+    try {
+      const status = await window.edx.getGitStatus();
+      
+      if (!status.available || !status.isRepository) {
+        gitStatusEl.classList.add('hidden');
+        return;
+      }
+
+      gitStatusEl.classList.remove('hidden');
+      
+      // Update branch name
+      if (gitBranchEl) {
+        gitBranchEl.textContent = status.branch || 'unknown';
+      }
+
+      // Update changes
+      if (gitChangesEl) {
+        const changes = [];
+        
+        if (status.staged > 0) {
+          changes.push(`<span class="git-stat staged">+${status.staged}</span>`);
+        }
+        if (status.unstaged > 0) {
+          changes.push(`<span class="git-stat unstaged">~${status.unstaged}</span>`);
+        }
+        if (status.untracked > 0) {
+          changes.push(`<span class="git-stat untracked">?${status.untracked}</span>`);
+        }
+        if (status.ahead > 0) {
+          changes.push(`<span class="git-stat ahead">↑${status.ahead}</span>`);
+        }
+        if (status.behind > 0) {
+          changes.push(`<span class="git-stat behind">↓${status.behind}</span>`);
+        }
+        if (status.clean) {
+          changes.push('<span class="git-stat">✓ clean</span>');
+        }
+        
+        gitChangesEl.innerHTML = changes.join(' ');
+      }
+    } catch (error) {
+      console.error('Failed to update git status:', error);
+      gitStatusEl.classList.add('hidden');
+    }
+  }
+
+  // Update immediately and then every 10 seconds
+  updateGitStatus();
+  setInterval(updateGitStatus, 10000);
 }

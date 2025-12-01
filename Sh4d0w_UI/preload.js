@@ -53,4 +53,8 @@ contextBridge.exposeInMainWorld('edex', {
   // Theme management
   setTheme: (themeName) => ipcRenderer.invoke('theme:set', themeName),
   getTheme: () => ipcRenderer.invoke('theme:get'),
+  // Git integration
+  getGitStatus: (cwd) => ipcRenderer.invoke('git:status', cwd),
+  getGitCommits: (cwd, count) => ipcRenderer.invoke('git:commits', cwd, count),
+  getGitRemote: (cwd) => ipcRenderer.invoke('git:remote', cwd),
 });

@@ -723,3 +723,62 @@ main.grid::before{
     transform: translateX(0);
   }
 }
+
+/* Git Status Display */
+.git-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+}
+
+.git-status.hidden {
+  display: none;
+}
+
+.git-branch {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.git-branch::before {
+  content: '⚡';
+  font-size: 14px;
+}
+
+.git-changes {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.git-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.git-stat.staged {
+  color: #6ec071;
+}
+
+.git-stat.unstaged {
+  color: #f39c12;
+}
+
+.git-stat.untracked {
+  color: var(--muted);
+}
+
+.git-stat.ahead {
+  color: #3498db;
+}
+
+.git-stat.behind {
+  color: #e74c3c;
+}
