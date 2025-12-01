@@ -6,9 +6,10 @@ const { app, BrowserWindow, ipcMain, session } = require('electron');
 const path = require('path');
 const os = require('os');
 // Use compiled TypeScript config if available, fallback to JS
-const config = require(
+const configModule = require(
   require('fs').existsSync(path.join(__dirname, 'dist', 'config.js')) ? './dist/config' : './config'
 );
+const config = configModule.default || configModule;
 const Logger = require('./logger');
 const ErrorHandler = require('./errorHandler');
 const SessionManager = require('./sessionManager');
