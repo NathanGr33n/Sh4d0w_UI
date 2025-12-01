@@ -13,6 +13,7 @@ const Logger = require('./logger');
 const ErrorHandler = require('./errorHandler');
 const SessionManager = require('./sessionManager');
 const CommandHistory = require('./commandHistory');
+const GitIntegration = require('./gitIntegration');
 
 // Initialize advanced logging system
 const securityConfig = config.getSecurityConfig();
@@ -30,6 +31,9 @@ const sessionManager = new SessionManager(logger);
 
 // Initialize command history manager
 const commandHistory = new CommandHistory(logger);
+
+// Initialize git integration
+const gitIntegration = new GitIntegration(logger);
 
 // Convenience logging functions
 const log = {
@@ -672,6 +676,38 @@ ipcMain.handle('theme:get', async () => {
   } catch (error) {
     log.error('Failed to get theme:', error);
     return 'shadow';
+  }
+});
+
+// Git integration handlers
+ipcMain.handle('git:status', async (_evt, cwd) => {
+  try {
+    const dir = cwd || currentSession.cwd || process.cwd();
+    return await gitIntegration.getStatus(dir);
+  } catch (error) {
+    log.error('Failed to get git status:', error);
+    return { available: false, error: error.message };
+  }
+});
+
+ipcMain.handle('git:commits', async (_evt, cwd, count) => {
+  try {
+    const dir = cwd || currentSession.cwd || process.cwd();
+    const commitCount = count || 10;
+    return await gitIntegration.getRecentCommits(dir, commitCount);
+  } catch (error) {
+    log.error('Failed to get git commits:', error);
+    return [];
+  }
+});
+
+ipcMain.handle('git:remote', async (_evt, cwd) => {
+  try {
+    const dir = cwd || currentSession.cwd || process.cwd();
+    return await gitIntegration.getRemoteUrl(dir);
+  } catch (error) {
+    log.error('Failed to get git remote:', error);
+    return null;
   }
 });
 
