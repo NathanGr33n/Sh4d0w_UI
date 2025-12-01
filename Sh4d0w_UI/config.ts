@@ -19,6 +19,10 @@ export interface TerminalConfig {
   shell: string | null;
 }
 
+export interface UIConfig {
+  zoomLevel: number;
+}
+
 export interface MonitoringConfig {
   pollInterval: number;
   maxRetries: number;
@@ -58,6 +62,7 @@ export interface AppConfig {
   monitoring: MonitoringConfig;
   security: SecurityConfig;
   theme: ThemeConfig;
+  ui: UIConfig;
 }
 
 // Configuration schema with validation
@@ -117,6 +122,12 @@ const schema = {
       customCssPath: { type: ['string', 'null'], default: null },
     },
   },
+  ui: {
+    type: 'object',
+    properties: {
+      zoomLevel: { type: 'number', minimum: 0.5, maximum: 2.0, default: 1.0 },
+    },
+  },
 };
 
 // Default configuration
@@ -157,6 +168,9 @@ const defaults: AppConfig = {
   theme: {
     current: 'shadow',
     customCssPath: null,
+  },
+  ui: {
+    zoomLevel: 1.0,
   },
 };
 
@@ -222,6 +236,10 @@ class Config {
 
   getThemeConfig(): ThemeConfig {
     return this.get('theme', defaults.theme);
+  }
+
+  getUIConfig(): UIConfig {
+    return this.get('ui', defaults.ui);
   }
 
   // Validate and sanitize configuration values

@@ -165,6 +165,19 @@ function createWindow() {
     // Show window when ready to prevent flash
     mainWindow.once('ready-to-show', () => {
       mainWindow.show();
+      
+      // Apply saved zoom level
+      try {
+        const uiConfig = config.getUIConfig();
+        const zoomLevel = uiConfig.zoomLevel || 1.0;
+        if (zoomLevel !== 1.0) {
+          mainWindow.webContents.setZoomFactor(zoomLevel);
+          log.info('Applied saved zoom level:', zoomLevel);
+        }
+      } catch (error) {
+        log.warn('Failed to apply zoom level:', error);
+      }
+      
       log.info('Window ready and shown');
     });
 
@@ -525,6 +538,52 @@ ipcMain.handle('config:reset', async () => {
     return success;
   } catch (error) {
     log.error('Config reset error:', error);
+    return false;
+  }
+});
+
+// Zoom control handlers
+ipcMain.handle('zoom:set', async (_evt, zoomLevel) => {
+  try {
+    // Validate zoom level (0.5 to 2.0)
+    const level = Math.max(0.5, Math.min(2.0, Number(zoomLevel)));
+    if (isNaN(level)) {
+      log.warn('Invalid zoom level provided:', zoomLevel);
+      return false;
+    }
+    
+    const success = config.set('ui.zoomLevel', level);
+    if (success && mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.setZoomFactor(level);
+      log.info('Zoom level set to:', level);
+    }
+    return success;
+  } catch (error) {
+    log.error('Zoom set error:', error);
+    return false;
+  }
+});
+
+ipcMain.handle('zoom:get', async () => {
+  try {
+    const uiConfig = config.getUIConfig();
+    return uiConfig.zoomLevel || 1.0;
+  } catch (error) {
+    log.error('Zoom get error:', error);
+    return 1.0;
+  }
+});
+
+ipcMain.handle('zoom:reset', async () => {
+  try {
+    const success = config.set('ui.zoomLevel', 1.0);
+    if (success && mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.setZoomFactor(1.0);
+      log.info('Zoom level reset to 1.0');
+    }
+    return success;
+  } catch (error) {
+    log.error('Zoom reset error:', error);
     return false;
   }
 });

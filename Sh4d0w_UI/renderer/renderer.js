@@ -207,6 +207,7 @@ setTimeout(() => {
     initializeStats();
     initializePreferences();
     initializeContextMenu();
+    initializeZoomControls();
   }
 }, 200);
 
@@ -456,5 +457,98 @@ function initializeContextMenu() {
       default:
         console.warn('Unknown action:', action);
     }
+  }
+}
+
+// Zoom Controls Management
+function initializeZoomControls() {
+  let currentZoom = 1.0;
+  let zoomIndicatorTimeout = null;
+
+  // Load current zoom level
+  if (window.edex?.getZoom) {
+    window.edex.getZoom().then(level => {
+      currentZoom = level || 1.0;
+    }).catch(err => {
+      console.error('Failed to load zoom level:', err);
+    });
+  }
+
+  // Keyboard shortcuts for zoom
+  document.addEventListener('keydown', async (e) => {
+    // Ctrl++ or Ctrl+= to zoom in
+    if (e.ctrlKey && (e.key === '+' || e.key === '=')) {
+      e.preventDefault();
+      await adjustZoom(0.1);
+    }
+    // Ctrl+- to zoom out
+    else if (e.ctrlKey && e.key === '-') {
+      e.preventDefault();
+      await adjustZoom(-0.1);
+    }
+    // Ctrl+0 to reset zoom
+    else if (e.ctrlKey && e.key === '0') {
+      e.preventDefault();
+      await resetZoom();
+    }
+  });
+
+  // Mouse wheel zoom with Ctrl
+  document.addEventListener('wheel', async (e) => {
+    if (e.ctrlKey) {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -0.1 : 0.1;
+      await adjustZoom(delta);
+    }
+  }, { passive: false });
+
+  async function adjustZoom(delta) {
+    try {
+      const newZoom = Math.max(0.5, Math.min(2.0, currentZoom + delta));
+      const success = await window.edex.setZoom(newZoom);
+      if (success) {
+        currentZoom = newZoom;
+        showZoomIndicator(Math.round(currentZoom * 100) + '%');
+      }
+    } catch (error) {
+      console.error('Failed to adjust zoom:', error);
+    }
+  }
+
+  async function resetZoom() {
+    try {
+      const success = await window.edex.resetZoom();
+      if (success) {
+        currentZoom = 1.0;
+        showZoomIndicator('100% (Reset)');
+      }
+    } catch (error) {
+      console.error('Failed to reset zoom:', error);
+    }
+  }
+
+  function showZoomIndicator(text) {
+    // Create or get zoom indicator element
+    let indicator = document.getElementById('zoom-indicator');
+    if (!indicator) {
+      indicator = document.createElement('div');
+      indicator.id = 'zoom-indicator';
+      indicator.className = 'zoom-indicator';
+      document.body.appendChild(indicator);
+    }
+
+    // Update and show
+    indicator.textContent = text;
+    indicator.classList.add('visible');
+
+    // Clear previous timeout
+    if (zoomIndicatorTimeout) {
+      clearTimeout(zoomIndicatorTimeout);
+    }
+
+    // Hide after 1.5 seconds
+    zoomIndicatorTimeout = setTimeout(() => {
+      indicator.classList.remove('visible');
+    }, 1500);
   }
 }

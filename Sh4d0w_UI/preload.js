@@ -40,4 +40,8 @@ contextBridge.exposeInMainWorld('edex', {
   getConfig: (key) => ipcRenderer.invoke('config:get', key),
   setConfig: (key, value) => ipcRenderer.invoke('config:set', key, value),
   resetConfig: () => ipcRenderer.invoke('config:reset'),
+  // Zoom controls
+  setZoom: (level) => ipcRenderer.invoke('zoom:set', level),
+  getZoom: () => ipcRenderer.invoke('zoom:get'),
+  resetZoom: () => ipcRenderer.invoke('zoom:reset'),
 });

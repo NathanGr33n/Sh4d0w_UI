@@ -369,3 +369,29 @@ main.grid::before{
     transform: translateY(0);
   }
 }
+
+/* Zoom Indicator */
+.zoom-indicator {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.8);
+  background: linear-gradient(135deg, var(--bg-1), var(--bg-2));
+  border: 2px solid var(--accent);
+  border-radius: 12px;
+  padding: 16px 32px;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--accent);
+  text-shadow: 0 0 10px rgba(233, 84, 32, 0.6);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8), 0 0 40px rgba(233, 84, 32, 0.3);
+  z-index: 10001;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.2s ease;
+}
+
+.zoom-indicator.visible {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
