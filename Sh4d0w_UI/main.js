@@ -59,6 +59,10 @@ let shellPty;
 let statsInterval;
 let isShuttingDown = false;
 
+// Window state tracking for adaptive polling
+let isWindowMinimized = false;
+let isWindowFocused = true;
+
 // Terminal session state for persistence
 let currentSession = {
   cwd: process.cwd(),
@@ -168,6 +172,25 @@ function createWindow() {
     mainWindow.on('closed', () => {
       mainWindow = null;
       cleanup();
+    });
+
+    // Track window state for adaptive polling
+    mainWindow.on('minimize', () => {
+      isWindowMinimized = true;
+      log.debug('Window minimized, adaptive polling may activate');
+    });
+
+    mainWindow.on('restore', () => {
+      isWindowMinimized = false;
+      log.debug('Window restored, resuming normal polling');
+    });
+
+    mainWindow.on('focus', () => {
+      isWindowFocused = true;
+    });
+
+    mainWindow.on('blur', () => {
+      isWindowFocused = false;
     });
 
     mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html')).catch((err) => {
@@ -480,21 +503,28 @@ ipcMain.on('debug:command', async (_evt, command) => {
   }
 });
 
-// Enhanced stats polling with error handling and rate limiting
+// Enhanced stats polling with error handling, rate limiting, and adaptive polling
 async function pollStats() {
   if (isShuttingDown || !mainWindow || mainWindow.isDestroyed()) {
     return;
   }
 
+  // Get monitoring config for adaptive polling and selective metrics
+  const monConfig = config.getMonitoringConfig();
+  const enabledMetrics = monConfig.enabledMetrics;
+
   try {
-    const [cpu, mem, net, disk, bat, temp] = await Promise.all([
-      si.currentLoad().catch(() => ({ currentLoad: 0, cpus: [] })),
-      si.mem().catch(() => ({ total: 0, free: 0, active: 0 })),
-      si.networkStats().catch(() => []),
-      si.fsSize().catch(() => []),
-      si.battery().catch(() => ({ hasbattery: false })),
-      si.cpuTemperature().catch(() => ({ main: null })),
-    ]);
+    // Conditionally fetch only enabled metrics to reduce overhead
+    const promises = [];
+    
+    promises.push(enabledMetrics.cpu ? si.currentLoad().catch(() => ({ currentLoad: 0, cpus: [] })) : Promise.resolve({ currentLoad: 0, cpus: [] }));
+    promises.push(enabledMetrics.memory ? si.mem().catch(() => ({ total: 0, free: 0, active: 0 })) : Promise.resolve({ total: 0, free: 0, active: 0 }));
+    promises.push(enabledMetrics.network ? si.networkStats().catch(() => []) : Promise.resolve([]));
+    promises.push(enabledMetrics.disk ? si.fsSize().catch(() => []) : Promise.resolve([]));
+    promises.push(enabledMetrics.battery && monConfig.enableBatteryMonitoring ? si.battery().catch(() => ({ hasbattery: false })) : Promise.resolve({ hasbattery: false }));
+    promises.push(enabledMetrics.temperature && monConfig.enableTemperatureMonitoring ? si.cpuTemperature().catch(() => ({ main: null })) : Promise.resolve({ main: null }));
+
+    const [cpu, mem, net, disk, bat, temp] = await Promise.all(promises);
 
     const payload = {
       time: Date.now(),
@@ -544,9 +574,17 @@ async function pollStats() {
     }
   }
 
-  // Schedule next poll (only reached if no backoff)
+  // Schedule next poll with adaptive interval (only reached if no backoff)
   if (!isShuttingDown) {
-    statsInterval = setTimeout(pollStats, STATS_INTERVAL);
+    // Adaptive polling: use slower interval when window is minimized
+    let nextInterval = STATS_INTERVAL;
+    
+    if (monConfig.adaptivePolling && monConfig.slowPollWhenMinimized && isWindowMinimized) {
+      nextInterval = monConfig.minimizedPollInterval;
+      log.debug(`Using minimized poll interval: ${nextInterval}ms`);
+    }
+    
+    statsInterval = setTimeout(pollStats, nextInterval);
   }
 }
 
