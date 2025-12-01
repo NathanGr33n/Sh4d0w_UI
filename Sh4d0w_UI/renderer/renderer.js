@@ -261,6 +261,7 @@ setTimeout(() => {
     initializeContextMenu();
     initializeZoomControls();
     initializeCommandHistory();
+    initializeTerminalSearch();
   }
 }, 200);
 
@@ -760,5 +761,182 @@ function initializeCommandHistory() {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+  }
+}
+
+// Terminal Search Functionality
+function initializeTerminalSearch() {
+  const searchPanel = document.getElementById('search-panel');
+  const searchInput = document.getElementById('search-input');
+  const searchPrev = document.getElementById('search-prev');
+  const searchNext = document.getElementById('search-next');
+  const searchClose = document.getElementById('search-close');
+  const caseSensitive = document.getElementById('search-case-sensitive');
+  const useRegex = document.getElementById('search-regex');
+  const matchesDisplay = document.getElementById('search-matches');
+  
+  let searchActive = false;
+  let currentMatches = [];
+  let currentMatchIndex = -1;
+  
+  if (!searchPanel || !term) return;
+
+  // Open search with Ctrl+F
+  document.addEventListener('keydown', (e) => {
+    if (e.ctrlKey && e.key === 'f') {
+      e.preventDefault();
+      openSearch();
+    }
+    if (e.key === 'Escape' && searchActive) {
+      closeSearch();
+    }
+  });
+
+  // Search input handlers
+  searchInput?.addEventListener('input', () => {
+    performSearch();
+  });
+
+  searchInput?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (e.shiftKey) {
+        findPrevious();
+      } else {
+        findNext();
+      }
+    }
+  });
+
+  // Option change handlers
+  caseSensitive?.addEventListener('change', performSearch);
+  useRegex?.addEventListener('change', performSearch);
+
+  // Button handlers
+  searchPrev?.addEventListener('click', findPrevious);
+  searchNext?.addEventListener('click', findNext);
+  searchClose?.addEventListener('click', closeSearch);
+
+  function openSearch() {
+    searchPanel.classList.remove('hidden');
+    searchInput.focus();
+    searchInput.select();
+    searchActive = true;
+    if (searchInput.value) {
+      performSearch();
+    }
+  }
+
+  function closeSearch() {
+    searchPanel.classList.add('hidden');
+    searchActive = false;
+    clearHighlights();
+    currentMatches = [];
+    currentMatchIndex = -1;
+    updateMatchDisplay();
+  }
+
+  function performSearch() {
+    const query = searchInput.value;
+    if (!query) {
+      clearHighlights();
+      currentMatches = [];
+      currentMatchIndex = -1;
+      updateMatchDisplay();
+      return;
+    }
+
+    try {
+      // Get terminal buffer content
+      const buffer = term.buffer.active;
+      const matches = [];
+      
+      const isCaseSensitive = caseSensitive.checked;
+      const isRegex = useRegex.checked;
+      
+      let searchPattern;
+      if (isRegex) {
+        const flags = isCaseSensitive ? 'g' : 'gi';
+        searchPattern = new RegExp(query, flags);
+      } else {
+        const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const flags = isCaseSensitive ? 'g' : 'gi';
+        searchPattern = new RegExp(escapedQuery, flags);
+      }
+
+      // Search through visible buffer
+      for (let i = 0; i < buffer.length; i++) {
+        const line = buffer.getLine(i);
+        if (line) {
+          const text = line.translateToString();
+          const lineMatches = [...text.matchAll(searchPattern)];
+          lineMatches.forEach(match => {
+            matches.push({
+              line: i,
+              col: match.index,
+              text: match[0]
+            });
+          });
+        }
+      }
+
+      currentMatches = matches;
+      currentMatchIndex = matches.length > 0 ? 0 : -1;
+      
+      highlightMatches();
+      updateMatchDisplay();
+      
+      if (matches.length > 0) {
+        scrollToMatch(0);
+      }
+    } catch (error) {
+      console.error('Search error:', error);
+      matchesDisplay.textContent = 'Search error';
+    }
+  }
+
+  function findNext() {
+    if (currentMatches.length === 0) return;
+    currentMatchIndex = (currentMatchIndex + 1) % currentMatches.length;
+    scrollToMatch(currentMatchIndex);
+    updateMatchDisplay();
+  }
+
+  function findPrevious() {
+    if (currentMatches.length === 0) return;
+    currentMatchIndex = currentMatchIndex - 1;
+    if (currentMatchIndex < 0) {
+      currentMatchIndex = currentMatches.length - 1;
+    }
+    scrollToMatch(currentMatchIndex);
+    updateMatchDisplay();
+  }
+
+  function scrollToMatch(index) {
+    if (index < 0 || index >= currentMatches.length) return;
+    const match = currentMatches[index];
+    term.scrollToLine(match.line);
+  }
+
+  function highlightMatches() {
+    // Note: xterm.js doesn't have a direct API for highlighting
+    // This is a simplified implementation
+    // In a production app, you'd use xterm-addon-search for proper highlighting
+  }
+
+  function clearHighlights() {
+    // Clear any custom highlighting
+  }
+
+  function updateMatchDisplay() {
+    if (currentMatches.length === 0) {
+      matchesDisplay.textContent = searchInput.value ? 'No matches' : '';
+      searchPrev.disabled = true;
+      searchNext.disabled = true;
+    } else {
+      matchesDisplay.textContent = `${currentMatchIndex + 1} / ${currentMatches.length}`;
+      searchPrev.disabled = false;
+      searchNext.disabled = false;
+    }
   }
 }
