@@ -28,6 +28,61 @@
 <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"
         integrity="sha384-V3hKWaJa0eBPfGVE2o7pQ6GCnXLqrSYqO7YvY9+OPYnhXRj2WhV6vK5lM2rCNmHq"
         crossorigin="anonymous"></script>
+<!-- Preferences Panel Modal -->
+<div id="preferences-overlay" class="prefs-overlay hidden">
+  <div class="prefs-panel">
+    <div class="prefs-header">
+      <h2>Preferences</h2>
+      <button class="prefs-close" title="Close (ESC)">×</button>
+    </div>
+    <div class="prefs-content">
+      <div class="prefs-section">
+        <h3>Monitoring</h3>
+        <label><input type="checkbox" id="pref-metric-cpu"> CPU Load</label>
+        <label><input type="checkbox" id="pref-metric-memory"> Memory</label>
+        <label><input type="checkbox" id="pref-metric-network"> Network</label>
+        <label><input type="checkbox" id="pref-metric-disk"> Disk</label>
+        <label><input type="checkbox" id="pref-metric-battery"> Battery</label>
+        <label><input type="checkbox" id="pref-metric-temperature"> Temperature</label>
+        <hr>
+        <label><input type="checkbox" id="pref-adaptive-polling"> Adaptive Polling</label>
+        <label><input type="checkbox" id="pref-slow-when-minimized"> Slow Poll When Minimized</label>
+        <label>
+          Poll Interval (ms):
+          <input type="number" id="pref-poll-interval" min="500" max="10000" step="100">
+        </label>
+        <label>
+          Minimized Interval (ms):
+          <input type="number" id="pref-minimized-interval" min="2000" max="30000" step="1000">
+        </label>
+      </div>
+      <div class="prefs-section">
+        <h3>Terminal</h3>
+        <label>
+          Font Size:
+          <input type="number" id="pref-font-size" min="8" max="24">
+        </label>
+      </div>
+      <div class="prefs-section">
+        <h3>Security</h3>
+        <label><input type="checkbox" id="pref-enable-logging"> Enable Logging</label>
+        <label>
+          Log Level:
+          <select id="pref-log-level">
+            <option value="error">Error</option>
+            <option value="warn">Warning</option>
+            <option value="info">Info</option>
+          </select>
+        </label>
+      </div>
+    </div>
+    <div class="prefs-footer">
+      <button class="prefs-save">Save</button>
+      <button class="prefs-reset">Reset to Defaults</button>
+      <button class="prefs-cancel">Cancel</button>
+    </div>
+  </div>
+</div>
 <script src="errorBoundary.js"></script>
 <script src="renderer.js"></script>
 </body></html>

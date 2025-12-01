@@ -467,6 +467,58 @@ ipcMain.handle('debug:get-info', async () => {
   };
 });
 
+// Configuration IPC handlers
+ipcMain.handle('config:get', async (_evt, key) => {
+  try {
+    return config.get(key);
+  } catch (error) {
+    log.error('Config get error:', error);
+    return null;
+  }
+});
+
+ipcMain.handle('config:set', async (_evt, key, value) => {
+  try {
+    const success = config.set(key, value);
+    if (success) {
+      log.info('Config updated:', { key, value });
+      
+      // Apply dynamic changes
+      if (key === 'monitoring.pollInterval' || key.startsWith('monitoring.')) {
+        // Restart polling with new settings
+        if (statsInterval) {
+          clearTimeout(statsInterval);
+          statsInterval = null;
+        }
+        pollStats();
+      }
+    }
+    return success;
+  } catch (error) {
+    log.error('Config set error:', error);
+    return false;
+  }
+});
+
+ipcMain.handle('config:reset', async () => {
+  try {
+    const success = config.reset();
+    if (success) {
+      log.info('Config reset to defaults');
+      // Restart polling with default settings
+      if (statsInterval) {
+        clearTimeout(statsInterval);
+        statsInterval = null;
+      }
+      pollStats();
+    }
+    return success;
+  } catch (error) {
+    log.error('Config reset error:', error);
+    return false;
+  }
+});
+
 // Debug command handler - Only available in development mode
 ipcMain.on('debug:command', async (_evt, command) => {
   try {

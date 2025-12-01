@@ -36,4 +36,8 @@ contextBridge.exposeInMainWorld('edex', {
   sendError: (errorData) => safeIpcSend('renderer:error', errorData),
   getDebugInfo: () => ipcRenderer.invoke('debug:get-info'),
   sendDebugCommand: (command) => safeIpcSend('debug:command', command),
+  // Configuration management
+  getConfig: (key) => ipcRenderer.invoke('config:get', key),
+  setConfig: (key, value) => ipcRenderer.invoke('config:set', key, value),
+  resetConfig: () => ipcRenderer.invoke('config:reset'),
 });
