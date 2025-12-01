@@ -50,4 +50,7 @@ contextBridge.exposeInMainWorld('edex', {
   searchHistory: (query) => ipcRenderer.invoke('history:search', query),
   clearHistory: () => ipcRenderer.invoke('history:clear'),
   getHistoryStats: () => ipcRenderer.invoke('history:stats'),
+  // Theme management
+  setTheme: (themeName) => ipcRenderer.invoke('theme:set', themeName),
+  getTheme: () => ipcRenderer.invoke('theme:get'),
 });

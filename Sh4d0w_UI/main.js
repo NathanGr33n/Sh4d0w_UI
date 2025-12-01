@@ -648,6 +648,33 @@ ipcMain.handle('history:stats', async () => {
   }
 });
 
+// Theme handlers
+ipcMain.handle('theme:set', async (_evt, themeName) => {
+  try {
+    if (!themeName || typeof themeName !== 'string') {
+      return false;
+    }
+    const success = config.set('theme.current', themeName);
+    if (success) {
+      log.info('Theme changed to:', themeName);
+    }
+    return success;
+  } catch (error) {
+    log.error('Failed to set theme:', error);
+    return false;
+  }
+});
+
+ipcMain.handle('theme:get', async () => {
+  try {
+    const themeConfig = config.getThemeConfig();
+    return themeConfig.current || 'shadow';
+  } catch (error) {
+    log.error('Failed to get theme:', error);
+    return 'shadow';
+  }
+});
+
 // Debug command handler - Only available in development mode
 ipcMain.on('debug:command', async (_evt, command) => {
   try {
