@@ -5,6 +5,9 @@ node_modules/
 dist/
 out/
 build/
+# electron-builder buildResources is the `build/` dir; keep NSIS customizer tracked.
+!Sh4d0w_UI/build/
+!Sh4d0w_UI/build/installer.nsh
 
 # OS files
 .DS_Store
