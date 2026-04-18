@@ -7,6 +7,8 @@
   "license": "GPL-3.0",
   "scripts": {
     "start": "npm run build && electron .",
+    "shell:start": "npm run build && electron . --shell",
+    "watchdog": "node shell/watchdog.js",
     "dev": "tsc --watch",
     "build": "tsc",
     "pack": "npm run build && electron-builder --dir",
@@ -49,6 +51,41 @@
     "productName": "Shadow UI",
     "directories": {
       "buildResources": "build"
+    },
+    "files": [
+      "**/*",
+      "!**/__tests__/**",
+      "!**/*.md",
+      "!coverage/**"
+    ],
+    "extraResources": [
+      {
+        "from": "shell/watchdog.js",
+        "to": "shell/watchdog.js"
+      },
+      {
+        "from": "scripts",
+        "to": "scripts",
+        "filter": ["*.ps1"]
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Shadow UI",
+      "include": "build/installer.nsh"
     }
   }
 }
