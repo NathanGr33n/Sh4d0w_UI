@@ -2,9 +2,16 @@
 // By: NathanGr33n
 // August 2025
 
-const { app, BrowserWindow, ipcMain, session } = require('electron');
+const { app, BrowserWindow, ipcMain, session, globalShortcut } = require('electron');
 const path = require('path');
 const os = require('os');
+
+// Shell-mode modules (loaded lazily so the normal app path is unaffected).
+const shellModeLib = require('./shell/shellMode');
+const processLauncher = require('./shell/processLauncher');
+const sessionControl = require('./shell/sessionControl');
+const { createStartMenu } = require('./shell/startMenu');
+const windowManager = require('./shell/windowManager');
 // Use compiled TypeScript config if available, fallback to JS
 const configModule = require(
   require('fs').existsSync(path.join(__dirname, 'dist', 'config.js')) ? './dist/config' : './config'
@@ -93,7 +100,19 @@ const rateLimiters = {
   termInit: new RateLimiter({ tokensPerInterval: 5, interval: 'minute' }),
   debugCommand: new RateLimiter({ tokensPerInterval: 5, interval: 'minute' }),
   rendererError: new RateLimiter({ tokensPerInterval: 50, interval: 'minute' }),
+  // Shell-mode endpoints (only relevant when shell mode is active).
+  shellLaunch: new RateLimiter({ tokensPerInterval: 30, interval: 'minute' }),
+  shellList: new RateLimiter({ tokensPerInterval: 60, interval: 'minute' }),
+  shellPower: new RateLimiter({ tokensPerInterval: 10, interval: 'minute' }),
 };
+
+// Detect shell mode early so createWindow() can branch cleanly.
+const shellCfg = (() => {
+  try { return config.getShellConfig(); } catch { return null; }
+})();
+const SHELL_MODE = shellModeLib.isShellMode(process.argv, process.env, shellCfg);
+// Lazily-initialized start menu cache (only created when in shell mode).
+let startMenu = null;
 
 // Security: Set up Content Security Policy
 function setupSecurity() {
@@ -141,23 +160,33 @@ function setupSecurity() {
 function createWindow() {
   try {
     const windowConfig = config.getWindowConfig();
-    mainWindow = new BrowserWindow({
-      width: windowConfig.width,
-      height: windowConfig.height,
-      backgroundColor: windowConfig.backgroundColor,
-      webPreferences: {
-        preload: path.join(__dirname, 'preload.js'),
-        nodeIntegration: false,
-        contextIsolation: true,
-        enableRemoteModule: false,
-        allowRunningInsecureContent: false,
-        experimentalFeatures: false,
-        webSecurity: true,
-        sandbox: false, // Keep false for now due to node-pty requirements
-      },
-      autoHideMenuBar: true,
-      show: false, // Don't show until ready
-    });
+    const webPreferences = {
+      preload: path.join(__dirname, 'preload.js'),
+      nodeIntegration: false,
+      contextIsolation: true,
+      enableRemoteModule: false,
+      allowRunningInsecureContent: false,
+      experimentalFeatures: false,
+      webSecurity: true,
+      sandbox: false, // Keep false for now due to node-pty requirements
+    };
+    const baseOptions = SHELL_MODE
+      ? {
+          ...shellModeLib.getShellWindowOptions({ backgroundColor: windowConfig.backgroundColor }),
+          webPreferences,
+        }
+      : {
+          width: windowConfig.width,
+          height: windowConfig.height,
+          backgroundColor: windowConfig.backgroundColor,
+          webPreferences,
+          autoHideMenuBar: true,
+          show: false,
+        };
+    mainWindow = new BrowserWindow(baseOptions);
+    if (SHELL_MODE) {
+      log.info('Shell mode active: kiosk window configured');
+    }
 
     // Security: Prevent new window creation
     mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
@@ -215,8 +244,16 @@ function createWindow() {
       isWindowFocused = false;
     });
 
-    mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html')).catch((err) => {
+    const entry = shellModeLib.resolveRendererEntry(SHELL_MODE, __dirname);
+    mainWindow.loadFile(entry).catch((err) => {
       log.error('Failed to load main window:', err);
+      // Fall back to the classic dashboard if the shell UI is missing/broken
+      // so the user is never left with a blank window.
+      if (SHELL_MODE) {
+        mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html')).catch((e) => {
+          log.error('Fallback renderer also failed:', e);
+        });
+      }
     });
   } catch (error) {
     log.error('Failed to create window:', error);
@@ -748,6 +785,118 @@ ipcMain.on('debug:command', async (_evt, command) => {
   }
 });
 
+// ---------------------------------------------------------------------------
+// Shell-mode IPC handlers (only registered when SHELL_MODE === true)
+// ---------------------------------------------------------------------------
+function registerShellIpc() {
+  if (!SHELL_MODE) {
+    return;
+  }
+  try {
+    startMenu = createStartMenu({
+      ttlMs: (shellCfg && shellCfg.startMenuCacheMs) || 30000,
+      logger: log,
+    });
+  } catch (err) {
+    log.error('Failed to initialize start menu cache:', err);
+  }
+
+  ipcMain.handle('shell:isShellMode', () => true);
+
+  ipcMain.handle('shell:launchApp', async (_evt, opts) => {
+    try {
+      const remaining = await rateLimiters.shellLaunch.removeTokens(1);
+      if (remaining < 0) {
+        return { ok: false, error: 'rate limit exceeded' };
+      }
+      if (!opts || typeof opts !== 'object') {
+        return { ok: false, error: 'invalid payload' };
+      }
+      return processLauncher.launchApp({
+        path: opts.path,
+        args: Array.isArray(opts.args) ? opts.args : [],
+        cwd: typeof opts.cwd === 'string' ? opts.cwd : null,
+        logger: log,
+      });
+    } catch (err) {
+      log.error('shell:launchApp error', err);
+      return { ok: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('shell:listStartMenu', async () => {
+    try {
+      const remaining = await rateLimiters.shellList.removeTokens(1);
+      if (remaining < 0) {
+        return [];
+      }
+      return startMenu ? startMenu.list() : [];
+    } catch (err) {
+      log.error('shell:listStartMenu error', err);
+      return [];
+    }
+  });
+
+  ipcMain.handle('shell:listWindows', async () => {
+    try {
+      const remaining = await rateLimiters.shellList.removeTokens(1);
+      if (remaining < 0) {
+        return [];
+      }
+      return await windowManager.listWindows({ logger: log });
+    } catch (err) {
+      log.error('shell:listWindows error', err);
+      return [];
+    }
+  });
+
+  ipcMain.handle('shell:focusWindow', async (_evt, pid) => {
+    try {
+      const remaining = await rateLimiters.shellLaunch.removeTokens(1);
+      if (remaining < 0) {
+        return { ok: false, error: 'rate limit exceeded' };
+      }
+      return await windowManager.focusWindow(pid, { logger: log });
+    } catch (err) {
+      log.error('shell:focusWindow error', err);
+      return { ok: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('shell:power', async (_evt, action) => {
+    try {
+      const remaining = await rateLimiters.shellPower.removeTokens(1);
+      if (remaining < 0) {
+        return { ok: false, error: 'rate limit exceeded' };
+      }
+      return await sessionControl.performAction(action, { logger: log });
+    } catch (err) {
+      log.error('shell:power error', err);
+      return { ok: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('shell:launchExplorer', async () => {
+    try {
+      const remaining = await rateLimiters.shellLaunch.removeTokens(1);
+      if (remaining < 0) {
+        return { ok: false, error: 'rate limit exceeded' };
+      }
+      const ok = shellModeLib.launchExplorer({ logger: log });
+      return { ok };
+    } catch (err) {
+      log.error('shell:launchExplorer error', err);
+      return { ok: false, error: err.message };
+    }
+  });
+
+  log.info('Shell mode IPC handlers registered');
+}
+
+// Always register a lightweight isShellMode handler so the classic renderer
+// can reliably discover the current mode without having to catch errors.
+ipcMain.handle('shell:isShellMode:check', () => Boolean(SHELL_MODE));
+
 // Enhanced stats polling with error handling, rate limiting, and adaptive polling
 async function pollStats() {
   if (isShuttingDown || !mainWindow || mainWindow.isDestroyed()) {
@@ -839,6 +988,16 @@ app.whenReady().then(async () => {
     log.info('App ready, setting up security...');
     setupSecurity();
 
+    if (SHELL_MODE) {
+      log.info('Registering shell-mode IPC handlers...');
+      registerShellIpc();
+      shellModeLib.registerPanicHotkey({
+        globalShortcut,
+        accelerator: (shellCfg && shellCfg.panicHotkey) || 'Control+Alt+Shift+E',
+        logger: log,
+      });
+    }
+
     log.info('Creating main window...');
     createWindow();
 
@@ -866,6 +1025,14 @@ app.on('window-all-closed', () => {
 app.on('before-quit', () => {
   log.info('App is quitting...');
   cleanup();
+});
+
+app.on('will-quit', () => {
+  try {
+    globalShortcut.unregisterAll();
+  } catch (err) {
+    log.warn('Failed to unregister global shortcuts:', err);
+  }
 });
 
 // Remove existing error handlers since ErrorHandler class handles them
