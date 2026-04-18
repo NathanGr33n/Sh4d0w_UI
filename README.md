@@ -48,6 +48,13 @@ Shadow UI is a cross-platform Electron-based dashboard featuring an immersive gr
   - Environment variable sanitization
   - Input validation and rate limiting
 
+- **Shell Mode (Windows)**:
+  - Optional kiosk UI suitable for replacing `explorer.exe` as the per-user Windows shell
+  - App launcher, task list, and power controls (logoff / restart / shutdown / lock)
+  - Crash-safe watchdog that falls back to `explorer.exe`
+  - Panic hotkey (`Ctrl+Alt+Shift+E`) and recovery scripts
+  - See [SHELL_MODE.md](SHELL_MODE.md) for install / uninstall / recovery.
+
 - **Developer Experience**:
   - TypeScript support with strict type checking
   - Comprehensive test suite (58 tests)
