@@ -1,0 +1,276 @@
+/* Shell-mode kiosk layout for Shadow UI. Complements styles-paranoid-ubuntu.css */
+
+:root {
+  --sh-bg: #0b0f14;
+  --sh-panel: #10151c;
+  --sh-panel-alt: #141b24;
+  --sh-border: #243042;
+  --sh-text: #d7dbe0;
+  --sh-muted: #8b94a1;
+  --sh-accent: #a8b6c8;
+  --sh-accent-bright: #e8edf4;
+  --sh-danger: #d14b4b;
+  --sh-warn: #c79a3d;
+}
+
+html, body.shell-body {
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  background: var(--sh-bg);
+  color: var(--sh-text);
+  font-family: 'Ubuntu', system-ui, sans-serif;
+}
+
+.shell-grid {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  grid-template-rows: 52px 1fr 56px;
+  grid-template-areas:
+    "top top"
+    "side main"
+    "bottom bottom";
+  height: 100vh;
+  width: 100vw;
+  gap: 0;
+}
+
+/* Top bar ----------------------------------------------------------------- */
+.shell-topbar {
+  grid-area: top;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 18px;
+  background: var(--sh-panel);
+  border-bottom: 1px solid var(--sh-border);
+}
+.shell-brand { font-size: 18px; letter-spacing: 1px; }
+.brand-main { font-weight: 700; color: var(--sh-accent-bright); }
+.brand-accent { font-weight: 400; color: var(--sh-accent); }
+.brand-mode {
+  margin-left: 12px;
+  padding: 2px 8px;
+  border: 1px solid var(--sh-border);
+  border-radius: 3px;
+  font-size: 11px;
+  color: var(--sh-muted);
+  font-family: 'Ubuntu Mono', monospace;
+}
+.shell-quick { display: flex; gap: 8px; }
+.shell-clock {
+  font-family: 'Ubuntu Mono', monospace;
+  font-size: 18px;
+  color: var(--sh-accent-bright);
+  letter-spacing: 2px;
+}
+
+/* Sidebar ---------------------------------------------------------------- */
+.shell-sidebar {
+  grid-area: side;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  gap: 10px;
+  padding: 12px;
+  background: var(--sh-panel-alt);
+  border-right: 1px solid var(--sh-border);
+  overflow: hidden;
+}
+
+.panel {
+  background: var(--sh-panel);
+  border: 1px solid var(--sh-border);
+  border-radius: 4px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.panel h2 {
+  margin: 0 0 8px 0;
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: var(--sh-muted);
+  text-transform: uppercase;
+}
+.panel-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.panel-header h2 { margin: 0; flex: 1; }
+.panel-header input[type='search'] {
+  flex: 2;
+  background: #0a1017;
+  color: var(--sh-text);
+  border: 1px solid var(--sh-border);
+  padding: 4px 8px;
+  font-size: 12px;
+  border-radius: 3px;
+}
+
+.launcher-panel { flex: 1 1 auto; min-height: 0; }
+.launcher-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.launcher-item {
+  padding: 6px 8px;
+  cursor: pointer;
+  border-radius: 2px;
+  font-size: 13px;
+  color: var(--sh-text);
+  background: transparent;
+  border: 1px solid transparent;
+  text-align: left;
+}
+.launcher-item:hover,
+.launcher-item:focus {
+  background: #1a2332;
+  border-color: var(--sh-border);
+  outline: none;
+}
+
+.run-panel .run-form {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.run-panel input[type='text'] {
+  flex: 1;
+  background: #0a1017;
+  color: var(--sh-text);
+  border: 1px solid var(--sh-border);
+  padding: 6px 8px;
+  font-family: 'Ubuntu Mono', monospace;
+  font-size: 12px;
+  border-radius: 3px;
+}
+.run-hint {
+  font-size: 11px;
+  color: var(--sh-muted);
+  margin-top: 4px;
+}
+.run-status {
+  font-size: 11px;
+  margin-top: 6px;
+  color: var(--sh-muted);
+  min-height: 14px;
+}
+.run-status.ok { color: #9ae0a0; }
+.run-status.err { color: var(--sh-danger); }
+
+/* Main area -------------------------------------------------------------- */
+.shell-main {
+  grid-area: main;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.windows-panel {
+  flex: 1;
+  min-height: 0;
+}
+.windows-list {
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 8px;
+}
+.window-item {
+  padding: 10px 12px;
+  background: var(--sh-panel-alt);
+  border: 1px solid var(--sh-border);
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.window-item:hover,
+.window-item:focus {
+  background: #1a2332;
+  outline: 1px solid var(--sh-accent);
+}
+.window-item .proc {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--sh-muted);
+  font-family: 'Ubuntu Mono', monospace;
+}
+.empty {
+  color: var(--sh-muted);
+  padding: 8px;
+  font-size: 12px;
+}
+
+/* Bottom bar ------------------------------------------------------------- */
+.shell-bottombar {
+  grid-area: bottom;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 18px;
+  background: var(--sh-panel);
+  border-top: 1px solid var(--sh-border);
+}
+.shell-status {
+  font-size: 12px;
+  color: var(--sh-muted);
+  font-family: 'Ubuntu Mono', monospace;
+}
+.shell-power { display: flex; gap: 8px; }
+
+/* Buttons ---------------------------------------------------------------- */
+.btn-primary, .btn-secondary, .power-btn, .quick-btn, .icon-btn {
+  background: transparent;
+  border: 1px solid var(--sh-border);
+  color: var(--sh-text);
+  padding: 6px 12px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: inherit;
+}
+.btn-primary {
+  background: #1a2332;
+  border-color: var(--sh-accent);
+}
+.btn-primary:hover { background: #243146; }
+.btn-secondary:hover { background: #1a2332; }
+.power-btn:hover { background: #1a2332; }
+.power-btn.warn { border-color: var(--sh-warn); color: var(--sh-warn); }
+.power-btn.danger { border-color: var(--sh-danger); color: var(--sh-danger); }
+.power-btn.warn:hover { background: #2a231a; }
+.power-btn.danger:hover { background: #2a1a1a; }
+.quick-btn:hover { background: #1a2332; }
+.icon-btn { padding: 2px 8px; font-size: 14px; }
+
+/* Confirm dialog --------------------------------------------------------- */
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+.confirm-overlay.hidden { display: none; }
+.confirm-panel {
+  background: var(--sh-panel);
+  border: 1px solid var(--sh-border);
+  border-radius: 4px;
+  padding: 20px 24px;
+  min-width: 320px;
+  max-width: 480px;
+}
+.confirm-panel h3 { margin: 0 0 10px 0; color: var(--sh-accent-bright); }
+.confirm-panel p { margin: 0 0 18px 0; color: var(--sh-text); font-size: 13px; }
+.confirm-actions { display: flex; justify-content: flex-end; gap: 10px; }

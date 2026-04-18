@@ -1,0 +1,83 @@
+<!doctype html>
+<!-- Shell-mode kiosk UI for Shadow UI -->
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>ShadowUI — Shell</title>
+  <link rel="stylesheet" href="../styles-paranoid-ubuntu.css">
+  <link rel="stylesheet" href="shellMode.css">
+  <link href="https://fonts.googleapis.com/css2?family=Ubuntu+Mono:wght@400;700&family=Ubuntu:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body class="shell-body">
+  <div class="shell-grid">
+    <header class="shell-topbar">
+      <div class="shell-brand">
+        <span class="brand-main">Shadow</span><span class="brand-accent">UI</span>
+        <span class="brand-mode">SHELL</span>
+      </div>
+      <div class="shell-quick">
+        <button class="quick-btn" data-action="launch-explorer" title="Launch Windows Explorer">Explorer</button>
+        <button class="quick-btn" data-action="refresh" title="Refresh windows and apps">Refresh</button>
+      </div>
+      <div class="shell-clock" id="shell-clock">--:--:--</div>
+    </header>
+
+    <aside class="shell-sidebar">
+      <section class="panel launcher-panel">
+        <div class="panel-header">
+          <h2>Launcher</h2>
+          <input type="search" id="launcher-filter" placeholder="Filter apps…" autocomplete="off">
+        </div>
+        <div id="launcher-list" class="launcher-list" role="list">
+          <div class="empty">Loading Start Menu…</div>
+        </div>
+      </section>
+
+      <section class="panel run-panel">
+        <h2>Run</h2>
+        <form id="run-form" class="run-form" autocomplete="off">
+          <input type="text" id="run-input" placeholder="Path to executable (must exist)" spellcheck="false">
+          <button type="submit" class="btn-primary">Launch</button>
+        </form>
+        <div class="run-hint">Absolute path only. No shell metacharacters. Rate limited.</div>
+        <div id="run-status" class="run-status" aria-live="polite"></div>
+      </section>
+    </aside>
+
+    <section class="shell-main">
+      <section class="panel windows-panel">
+        <div class="panel-header">
+          <h2>Open Windows</h2>
+          <button class="icon-btn" id="windows-refresh" title="Refresh">↻</button>
+        </div>
+        <div id="windows-list" class="windows-list" role="list">
+          <div class="empty">Loading…</div>
+        </div>
+      </section>
+    </section>
+
+    <footer class="shell-bottombar">
+      <div class="shell-status" id="shell-status">Shell ready.</div>
+      <div class="shell-power">
+        <button class="power-btn" data-action="lock">Lock</button>
+        <button class="power-btn" data-action="logoff">Sign out</button>
+        <button class="power-btn warn" data-action="restart">Restart</button>
+        <button class="power-btn danger" data-action="shutdown">Shut down</button>
+      </div>
+    </footer>
+  </div>
+
+  <div id="confirm-overlay" class="confirm-overlay hidden" role="dialog" aria-modal="true">
+    <div class="confirm-panel">
+      <h3 id="confirm-title">Confirm</h3>
+      <p id="confirm-message">Are you sure?</p>
+      <div class="confirm-actions">
+        <button id="confirm-cancel" class="btn-secondary">Cancel</button>
+        <button id="confirm-ok" class="btn-primary">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="shellMode.js"></script>
+</body>
+</html>
