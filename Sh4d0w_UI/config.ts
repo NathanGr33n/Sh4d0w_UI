@@ -56,6 +56,25 @@ export interface ThemeConfig {
   customCssPath: string | null;
 }
 
+export interface ShellConfig {
+  // Master switch: when true, main.js uses kiosk window + shell UI.
+  // Also controllable via `--shell` CLI flag or SHADOW_UI_SHELL=1 env var.
+  enabled: boolean;
+  // Whether the watchdog should restart the app on crash.
+  launchOnStartup: boolean;
+  // Panic hotkey used to spawn explorer.exe as a recovery fallback.
+  // Electron accelerator format (https://www.electronjs.org/docs/latest/api/accelerator).
+  panicHotkey: string;
+  // Max restarts allowed inside the sliding window before falling back.
+  watchdogRetries: number;
+  // Sliding window duration (ms) used to count retries.
+  watchdogWindowMs: number;
+  // If the watchdog exceeds its retry budget, spawn explorer.exe instead of exiting.
+  fallbackToExplorer: boolean;
+  // Cache TTL for the Start Menu enumeration, in milliseconds.
+  startMenuCacheMs: number;
+}
+
 export interface AppConfig {
   window: WindowConfig;
   terminal: TerminalConfig;
@@ -63,6 +82,7 @@ export interface AppConfig {
   security: SecurityConfig;
   theme: ThemeConfig;
   ui: UIConfig;
+  shell: ShellConfig;
 }
 
 // Configuration schema with validation
@@ -128,6 +148,18 @@ const schema = {
       zoomLevel: { type: 'number', minimum: 0.5, maximum: 2.0, default: 1.0 },
     },
   },
+  shell: {
+    type: 'object',
+    properties: {
+      enabled: { type: 'boolean', default: false },
+      launchOnStartup: { type: 'boolean', default: true },
+      panicHotkey: { type: 'string', default: 'Control+Alt+Shift+E' },
+      watchdogRetries: { type: 'number', minimum: 0, maximum: 100, default: 5 },
+      watchdogWindowMs: { type: 'number', minimum: 1000, maximum: 3600000, default: 60000 },
+      fallbackToExplorer: { type: 'boolean', default: true },
+      startMenuCacheMs: { type: 'number', minimum: 0, maximum: 3600000, default: 30000 },
+    },
+  },
 };
 
 // Default configuration
@@ -171,6 +203,15 @@ const defaults: AppConfig = {
   },
   ui: {
     zoomLevel: 1.0,
+  },
+  shell: {
+    enabled: false,
+    launchOnStartup: true,
+    panicHotkey: 'Control+Alt+Shift+E',
+    watchdogRetries: 5,
+    watchdogWindowMs: 60000,
+    fallbackToExplorer: true,
+    startMenuCacheMs: 30000,
   },
 };
 
@@ -240,6 +281,10 @@ class Config {
 
   getUIConfig(): UIConfig {
     return this.get('ui', defaults.ui);
+  }
+
+  getShellConfig(): ShellConfig {
+    return this.get('shell', defaults.shell);
   }
 
   // Validate and sanitize configuration values
