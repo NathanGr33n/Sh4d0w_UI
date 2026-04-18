@@ -58,3 +58,27 @@ contextBridge.exposeInMainWorld('edex', {
   getGitCommits: (cwd, count) => ipcRenderer.invoke('git:commits', cwd, count),
   getGitRemote: (cwd) => ipcRenderer.invoke('git:remote', cwd),
 });
+
+// ---------------------------------------------------------------------------
+// Shell-mode API
+// Exposed separately from `edex` so the surface is obvious to auditors and so
+// callers can feature-detect via `!!window.shadow?.shell`.
+// All methods return promises; nothing accepts arbitrary strings that get
+// concatenated in main -- all validation happens in main.js.
+// ---------------------------------------------------------------------------
+contextBridge.exposeInMainWorld('shadow', {
+  shell: {
+    isShellMode: () => ipcRenderer.invoke('shell:isShellMode:check'),
+    launchApp: (opts) => ipcRenderer.invoke('shell:launchApp', opts),
+    listStartMenu: () => ipcRenderer.invoke('shell:listStartMenu'),
+    listWindows: () => ipcRenderer.invoke('shell:listWindows'),
+    focusWindow: (pid) => ipcRenderer.invoke('shell:focusWindow', pid),
+    launchExplorer: () => ipcRenderer.invoke('shell:launchExplorer'),
+    power: {
+      logoff: () => ipcRenderer.invoke('shell:power', 'logoff'),
+      restart: () => ipcRenderer.invoke('shell:power', 'restart'),
+      shutdown: () => ipcRenderer.invoke('shell:power', 'shutdown'),
+      lock: () => ipcRenderer.invoke('shell:power', 'lock'),
+    },
+  },
+});
